@@ -1,0 +1,86 @@
+name: pi-agents-sample
+
+x-worker: &worker
+  build:
+    context: .
+    dockerfile: sandbox/Dockerfile
+  init: true
+  restart: unless-stopped
+  # Unprivileged Bubblewrap needs user/mount/PID namespace syscalls.
+  # No privileged mode, SYS_ADMIN, host mounts, or Docker socket.
+  security_opt:
+    - seccomp=unconfined
+    - apparmor=unconfined
+    # Nested /proc mounts otherwise fail due to Docker's masked proc subpaths.
+    - systempaths=unconfined
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  cap_add: [SETUID, SETGID, CHOWN, DAC_OVERRIDE, KILL]
+  pids_limit: 512
+  mem_limit: 2g
+  cpus: 2
+  environment: &worker-env
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    PI_MODEL: ${PI_MODEL:-gpt-4.1-mini}
+    SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
+    PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
+    MAX_SESSIONS: ${MAX_SESSIONS:-8}
+  healthcheck:
+    test: [CMD, /opt/server/bin/python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  networks: [agents]
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    init: true
+    restart: unless-stopped
+    ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      API_TOKEN: ${API_TOKEN:-local-demo-change-me}
+      SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
+      SANDBOX_ENDPOINTS: '{"sandbox-1":"http://sandbox-1:8080","sandbox-2":"http://sandbox-2:8080"}'
+      PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
+      OPENAI_AGENTS_DISABLE_TRACING: "1"
+    volumes: [agent-state:/state]
+    depends_on:
+      sandbox-1: {condition: service_healthy}
+      sandbox-2: {condition: service_healthy}
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [agents]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sandbox-1:
+    <<: *worker
+    environment:
+      <<: *worker-env
+      SANDBOX_ID: sandbox-1
+    volumes: [sandbox-1-data:/sessions, sandbox-1-state:/state]
+
+  sandbox-2:
+    <<: *worker
+    environment:
+      <<: *worker-env
+      SANDBOX_ID: sandbox-2
+    volumes: [sandbox-2-data:/sessions, sandbox-2-state:/state]
+
+networks:
+  agents:
+
+volumes:
+  agent-state:
+  sandbox-1-data:
+  sandbox-1-state:
+  sandbox-2-data:
+  sandbox-2-state:

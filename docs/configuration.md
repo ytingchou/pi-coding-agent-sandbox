@@ -158,3 +158,10 @@ docker compose ps
 省略／留空 `.env` 使用 Compose 預設；直接注入 Pod env 時請提供有效整數，不要留空。Chart 由 `lifecycle.ephemeralIdleTtlSeconds`、`cleanupIntervalSeconds`、`piIdleDisconnectSeconds` 設定，JSON schema 會拒絕負值及 0 TTL。通常採用 3600／60／300，再依工作間隔與記憶體觀察調整；需要常駐背景子程序則關閉 Pi 暫停。舊 session 保持 managed，不會自動變成 ephemeral。詳見 [生命週期操作](session-lifecycle.md)。
 
 Helm 的非環境設定、storage、image、replicas、NetworkPolicy 見 [values.yaml](../charts/pi-sandbox/values.yaml)；內部端點範例見 [internal.yaml](../charts/pi-sandbox/examples/internal.yaml)。`existingSecret` 預設 pi-sandbox-secrets，但 Secret 本身必須預先建立，四個 key 皆須存在；Chart 不提供可用的預設認證。
+
+
+## MongoDB Session Manager
+
+`MONGODB_URI` 在 direct process／K8s 必填；Compose 預設 mongodb://mongodb:27017。`MONGODB_DATABASE` 選填 pi_agents；`MONGODB_USERNAME`／`MONGODB_PASSWORD` 可省略以使用 URI 內認證，否則需成對提供。Compose 的本機 defaults 為 pi_demo／pi-demo-change-me，authSource 為 pi_agents；直接程序與 Helm 的 `MONGODB_AUTH_SOURCE` 預設 admin。`MONGODB_TIMEOUT_MS` 選填 5000（正整數），`MONGODB_TLS_CA_FILE` 選填自訂 CA 路徑。完整規則、root 初始化變數與輪替見 [MongoDB 手冊](mongodb.md)。
+
+Helm 不載入 `.env`：使用 `mongodb.existingSecret` 與 uriKey／usernameKey／passwordKey 引用 Vault 同步 Secret；database／authSource／timeoutMS 為非秘密 values，tlsCASecret 選填。只注入 API Pod。Vault Secret 更新後須重建 API Pod，既有 env 不自動改變。

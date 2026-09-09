@@ -2,7 +2,7 @@
 
 ## Project map
 
-- `orchestrator/`: FastAPI control API, OpenAI Agents SDK, SQLite history and Session Manager.
+- `orchestrator/`: FastAPI control API, OpenAI Agents SDK, SQLite conversation history and MongoDB Session Manager.
 - `sandbox/`: root worker supervisor, Pi JSONL RPC, Bubblewrap isolation and image package inventory.
 - `sandbox/resources/`: session bootstrap, skills, TypeScript Pi extensions and the local stats-kit package.
 - `scripts/`: demos and host-side verification / evidence export tools.
@@ -63,3 +63,15 @@
 - Keep deletion failures addressable and retryable; never drop a binding before the worker confirms deletion.
 - Run `make lint-helm` for chart changes and `make test-container` for lifecycle/isolation changes.
 - Chart rendering and schema validation are not proof of live cluster compatibility. Disclose untested CSI/CNI/userns/admission behavior.
+
+## MongoDB registry
+
+- MongoDB owns Agent/binding metadata; SQLite remains only for SDK conversation history, worker UID metadata.
+- Keep MongoDB I/O off the event loop. Never log credentials or raw driver connection errors.
+- Do not add a MongoDB TTL index to bindings: worker deletion must complete before removing the document.
+- MongoDB does not remove the single-API-process constraint; distributed leases are not implemented.
+- Helm uses an existing Vault-synchronized Secret via env, only in API Pods. No embedded database or literal credential values in Helm.
+- Run `make test-mongodb` for registry changes as well as normal/offline checks. This target uses local disposable test databases.
+
+- Registry documents and lifecycle patches must use `orchestrator/documents.py`; validate merged updates, not `model_copy(update=...)`.
+- Preserve `_id` BSON / `id` API serialization. Keep document schema and index design docs synchronized with code.

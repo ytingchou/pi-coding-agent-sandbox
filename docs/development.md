@@ -91,3 +91,6 @@ Agent 協作規範見 [AGENTS.md](../AGENTS.md)，部署環境變數見 [configu
 
 
 Helm 模板由 `make lint-helm` 渲染後檢查，原始 Go templates 不直接交給 yamllint；渲染 YAML 僅額外允許 Helm toYaml 的 indentless lists（`.yamllint-rendered.yaml`）。Chart 測試涵蓋 1／3 workers 的直接 DNS 路由、PVC、Secret refs、NetworkPolicy 和不合法 values。修改生命週期／chart 時還需 `make test-container`；K8s schema／server admission 驗證方式見 [kubernetes.md](kubernetes.md)。
+
+
+MongoDB registry 單元測試預設使用 mongomock；`make test-mongodb` 對 Compose 的真實 MongoDB 執行持久化／清理／document 驗證測試，CI 也執行。SDK 對話 SQLite 與 worker 本地 SQLite 不屬於 registry 儲存。詳見 [mongodb.md](mongodb.md)。

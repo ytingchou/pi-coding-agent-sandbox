@@ -46,7 +46,7 @@ Skill 情境刻意直接呼叫 `/pi/prompt`，確保使用 pi 原生 skill comma
 uv run --locked python scripts/verify_sessions.py cleanup --report artifacts/my-verification/report.json
 ```
 
-`cleanup` 只刪除報告列出的 sessions，且要求已執行 collection；本機匯出檔保留。API 目前沒有刪除邏輯 Agent 的 endpoint，所以 Agent registry／外層歷史仍留在 API volume。不要以 `docker compose down -v` 代替這個步驟，它會刪除整個 sample 的資料。
+`cleanup` 只刪除報告列出的 sessions，且要求已執行 collection；本機匯出檔保留。API 目前沒有刪除邏輯 Agent 的 endpoint，所以 Agent registry 留在 MongoDB，外層歷史仍留在 API volume。不要以 `docker compose down -v` 代替這個步驟，它會刪除整個 sample 的資料。
 
 ## 2. 匯出檔案與證據來源
 

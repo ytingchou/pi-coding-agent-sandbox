@@ -4,11 +4,11 @@ Chart 位於 [`charts/pi-sandbox`](../charts/pi-sandbox/README.md)，適用於 K
 
 ## 架構與必要條件
 
-- 一個 API StatefulSet 固定 **1 replica**，獨立 state PVC 保存 Agent registry／對話 SQLite。
+- 一個 API StatefulSet 固定 **1 replica**，獨立 state PVC 保存對話 SQLite；Agent／session registry 保存在外部 MongoDB。
 - 一個 worker StatefulSet，預設 **2 replicas**。每個 ordinal 有獨立 `state` 和 `sessions` PVC；API 透過 headless Service 的 Pod DNS 直接呼叫指定 worker，不把 session request 丟到共用負載平衡 Service。
 - 例如 release `demo`、namespace `agents`：`demo-pi-workers-0.demo-pi-workers.agents.svc:8080`；sandbox ID 是 `demo-pi-workers-0`。Chart 依 replicas 產生 `SANDBOX_ENDPOINTS`，不需 Kubernetes API discovery 權限。
 - 兩種 workload 都使用 `OnDelete` 更新策略，避免 Helm upgrade 自動中斷執行中的 sessions。必須依下方程序安排 Pod 重建；`helm upgrade --wait` 本身不代表 Pod 已採用新設定。
-- PVC 在縮容／解除安裝後 **Retain**；session TTL 刪檔不刪 PVC。請監控空間及實際備份，不能將 PV snapshot 當成跨三種 PVC 的自動一致性備份。
+- PVC 在縮容／解除安裝後 **Retain**；session TTL 刪檔不刪 PVC。請監控空間及實際備份，不能將 PV snapshot 當成跨 MongoDB 與各 PVC 的自動一致性備份。
 
 Worker 必須能使用巢狀 user/mount/PID namespaces 和 `/proc`。Chart 設定 `hostUsers: false`、`procMount: Unmasked`，需要 Linux kernel、container runtime、kubelet、CSI volume 的 Pod user namespace／idmapped mount 支援。Kubernetes 1.33/1.34 叢集也需確認相關 feature gates；1.36 起 Pod user namespaces 為 GA。Pod Security／公司 admission policy 必須接受指定安全設定。
 
@@ -27,6 +27,8 @@ docker push registry.example.internal/pi-worker:uv-lifecycle-v1
 
 kubectl create namespace agents
 ```
+
+另外必須預先備妥外部 MongoDB 與 Vault 同步的 DB Secret（預設 `pi-mongodb`）；URI／username／password env、CA、egress、輪替和舊資料遷移見 [MongoDB 手冊](mongodb.md)。Chart 不建立 MongoDB。
 
 在該 namespace 以公司 Secret 管理流程建立 `pi-sandbox-secrets`，含四個必填 keys：`API_TOKEN`、`SANDBOX_TOKEN`、`OPENAI_API_KEY`、`PI_API_KEY`。兩個控制 token 應不同；外層模型與 Pi 模型 key 分別設定，Chart 不將外層 key 傳入 worker。Secret 可由 External Secrets／公司平台建立；Chart 不代建明文 Secret，避免放入 Helm release values。
 
@@ -84,7 +86,7 @@ docker run --rm -v /tmp/pi-manifests.yaml:/manifest.yaml:ro \
   ghcr.io/yannh/kubeconform:v0.7.0 -strict -summary -kubernetes-version 1.33.0 /manifest.yaml
 ```
 
-本次驗證：主機 31 passed／5 skipped，無外網 Linux 容器 36 passed；Helm 預設 6 個資源均通過 Kubernetes 1.33 schema，另檢查 1／3 worker 渲染與不合法 values。沒有呼叫付費模型。
+MongoDB 版本完成主機 36 passed／5 skipped、無外網 Linux 容器 41 passed；真實本機 MongoDB 17 passed／1 skipped。Helm 會檢查 1／3 worker 渲染與不合法 values。
 
 目前已驗證本機 Helm 渲染與 Kubernetes 1.33 schema；本機 Kubernetes API 未啟動，**尚未完成真實叢集安裝驗證**。Compose Linux 容器通過不代表公司 CSI、CNI、admission 或巢狀 userns 必然相容。
 

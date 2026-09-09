@@ -29,7 +29,9 @@ kubectl -n agents create secret generic pi-sandbox-secrets \
   --from-env-file=/secure/path/pi-secrets.env
 ```
 
-既有 Secret 必須包含 `API_TOKEN`、`SANDBOX_TOKEN`、`OPENAI_API_KEY`、`PI_API_KEY`。兩個控制 token 應不同；外層 Agent 與 Pi 使用各自的模型 key。Chart 只引用 Secret，不把秘密寫入 values 或 Helm release 設定；也不會讀取 Compose 的 `.env`。
+另需預先建立外部 MongoDB 連線 Secret（預設 `pi-mongodb`）；本 chart 不部署 MongoDB。
+
+模型／控制平面的既有 Secret 必須包含 `API_TOKEN`、`SANDBOX_TOKEN`、`OPENAI_API_KEY`、`PI_API_KEY`。兩個控制 token 應不同；外層 Agent 與 Pi 使用各自的模型 key。Chart 只引用 Secret，不把秘密寫入 values 或 Helm release 設定；也不會讀取 Compose 的 `.env`。
 
 以 [examples/internal.yaml](examples/internal.yaml) 為起點建立自己的 values，替換 image、模型 URL／model ID、StorageClass 與 egress IP。範例 `192.0.2.x` 是文件示意位址，不能直接使用。
 
@@ -50,7 +52,7 @@ kubectl -n agents port-forward service/demo-pi-api 8000:8000
 
 | 資源 | 行為 |
 |---|---|
-| API StatefulSet | 固定 1 replica／1 Uvicorn process，state PVC 保存 registry 與對話 SQLite |
+| API StatefulSet | 固定 1 replica／1 Uvicorn process，state PVC 保存對話 SQLite；registry 在外部 MongoDB |
 | Worker StatefulSet | 預設 2 replicas，每個 ordinal 各有 state、sessions PVC |
 | Worker headless Service | API 直連 Pod DNS，避免 session 被負載平衡到不同 worker |
 | API Service | ClusterIP，port 8000；未內建 Ingress 或公開入口 |
@@ -101,6 +103,25 @@ kubectl -n agents port-forward service/demo-pi-api 8000:8000
 
 預設 NetworkPolicy 允許同 namespace client 到 API、API 到本 release workers，以及 kube-system CoreDNS；沒有預設模型外連權限。CIDR 規則不是 FQDN allowlist，NodeLocal DNS、NAT、公司 CA 必須由平台確認。不同 session 共用 Pod 的網路政策。
 
+## External MongoDB 與 Vault Secret
+
+公司 Vault 流程先同步 Kubernetes Secret，再由 Chart 的 `secretKeyRef` 注入 API env。Chart 不安裝 Vault controller，也不在 values 中保存 DB 認證。
+
+| 設定 | 預設 | 說明 |
+|---|---|---|
+| `mongodb.existingSecret` | `pi-mongodb` | 同 namespace 的 Vault 同步 Secret |
+| `mongodb.uriKey` | `MONGODB_URI` | 必填 Secret key，完整 URI／SRV URI |
+| `mongodb.usernameKey` | `MONGODB_USERNAME` | 選填；若 URI 已含帳密可省略 |
+| `mongodb.passwordKey` | `MONGODB_PASSWORD` | 選填；與 username 一起提供或省略 |
+| `mongodb.database` | `pi_agents` | 實際 database，與 URI path 獨立 |
+| `mongodb.authSource` | `admin` | 使用獨立 username/password 時的認證 database |
+| `mongodb.timeoutMS` | `5000` | 正整數，連線／選擇 server／socket timeout |
+| `mongodb.tlsCASecret` | 空字串 | optional CA Secret，key 為 ca.crt，唯讀掛載到 API |
+
+必須在 `networkPolicy.apiEgress` 允許所有 MongoDB replica-set 成員與 DNS；不需給 worker DB 網路或認證。Vault 輪替 Secret 不會更新既有 Pod env，需依 OnDelete 流程重建 API Pod。API `/ready` 會 ping DB，`/health` 只檢查程序存活。
+
+API 仍不可增加副本，外層 SQLiteSession 對話與 worker SQLite UID metadata 獨立保存。
+
 ## Session 自動清理
 
 建立 session 時預設 `retention: managed`，只有明確 DELETE 才刪除。一次性工作可使用：
@@ -143,3 +164,5 @@ make test-container
 目前通過 Helm 渲染、Kubernetes 1.33 schema 與無外網容器測試；**尚未完成真實叢集安裝驗證**。實際叢集仍須 server dry-run 及逐 worker Pi 啟動驗證。
 
 本專案內另有 [完整 Kubernetes 手冊](../../docs/kubernetes.md)、[Session 生命週期](../../docs/session-lifecycle.md)、[環境設定](../../docs/configuration.md) 與 [執行證據／token tracing](../../docs/session-verification.md)。
+
+MongoDB 設計文件：[Schema 與 index design](../../docs/mongodb-schema.md)、[Registry 架構設計](../../docs/mongodb-registry-architecture.md)。Document models 使用 Pydantic，來源為 [`orchestrator/documents.py`](../../orchestrator/documents.py)。

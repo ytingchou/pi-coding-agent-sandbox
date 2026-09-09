@@ -7,7 +7,7 @@
 ```mermaid
 flowchart LR
     User[Client / demo.py] --> API[FastAPI + Agents SDK Agent]
-    API --> SM[Session Manager\nSQLite registry + HTTP pool]
+    API --> SM[Session Manager\nMongoDB registry + HTTP pool]
     SM --> W1[Sandbox worker 1]
     SM --> W2[Sandbox worker 2]
     W1 --> A[Pi RPC session A\nUID A + mount/PID namespace\nworkspace + HOME + venv]
@@ -138,12 +138,12 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 ## Session Manager 的責任
 
-- `orchestrator/session_manager.py` 管理 `agent_id → session_id → sandbox_id`，用 SQLite 持久化；HTTP client 使用連線池。Agent 與 session ID 都由伺服器產生 UUID。工具入口再檢查 session 是否屬於該 Agent，以及是否在此次允許的集合中。
+- `orchestrator/session_manager.py` 管理 `agent_id → session_id → sandbox_id`，用 MongoDB 持久化；HTTP client 使用連線池。Agent 與 session ID 都由伺服器產生 UUID。工具入口再檢查 session 是否屬於該 Agent，以及是否在此次允許的集合中。
 - `orchestrator/agent.py` 使用 `Agent`、`Runner.run`、`function_tool` 與 `SQLiteSession`。每次 run 建立 SDK Agent 設定物件，對話紀錄以邏輯 `agent_id` 延續。第一次模型呼叫必須使用工具，之後可整合結果。
 - `sandbox/app.py` 管理 worker 內多個 pi connections。每個 session 擁有獨立、長駐的 pi subprocess，後續 prompt 重用同一條 stdin/stdout RPC 連線。每個 worker 預設最多保留 8 sessions，包含閒置或配置中的 session。
 - 同一 Agent 的 run／建立／刪除以 lock 序列化，防止對話紀錄交錯。不同 Agent 可並行。worker 另外對每個 session 加鎖；不同 pi sessions 可以並行。
 - pi 的 `prompt` response 只代表接受請求；程式會等待 `agent_end` 再返回，並處理模型 error/aborted、EOF、timeout。RPC 回應以 request ID 關聯，不會把接受請求誤判為執行完成。
-- Worker 重啟後按原 UID 重新建立程序，用固定 `--session /workspace/state/session.jsonl` 恢復 pi 對話；檔案、HOME、venv 在 volume 中保留。API registry 與外層對話也在 named volume 中保留。
+- Worker 重啟後按原 UID 重新建立程序，用固定 `--session /workspace/state/session.jsonl` 恢復 pi 對話；檔案、HOME、venv 在 volume 中保留。API registry 保存在 MongoDB 的 mongodb-data volume；外層對話仍保存在 API state volume。
 - 不自動把現有 session 改派到別台 worker，也不自動重試可能已執行的 prompt，避免重複副作用。配置失敗會保留 `allocating` 記錄，錯誤回應帶 `session_id`，可 `/connect` 或 DELETE。刪除失敗則保留 `deleting`，可重試 DELETE。
 - `PROMPT_TIMEOUT` 限制每次 pi prompt；超時會殺掉該 session 程序，保留檔案供下次重連。這不是整個外層 Agent run 的總時間上限，也不會回滾已寫入的檔案。
 
@@ -174,7 +174,17 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 範例中 worker 名稱是固定身分，不可用 `docker compose --scale sandbox-1=3` 直接替代；多副本共用 DNS 與 volume 會破壞 session affinity。遠端 worker 也可放入 endpoints，但跨主機部署需要 HTTPS、網路存取政策與獨立管理憑證。
 
-目前 API 與每個 worker 必須各維持 **一個 Uvicorn process**。這是刻意的範例限制：asyncio locks 與 RPC connections 是程序內狀態。要擴充 API 副本，需以 PostgreSQL/Redis lease 分散式鎖、worker discovery、容量預留與 job 狀態取代本機鎖／SQLite；既有 Transport 邊界可沿用。已支援 managed／ephemeral 保留策略、閒置 TTL 清理與 Pi 程序暫停；尚未實作 Agent 刪除、artifact HTTP 下載與跨 worker 遷移。
+目前 API 與每個 worker 必須各維持 **一個 Uvicorn process**。這是刻意的範例限制：asyncio locks 與 RPC connections 是程序內狀態。要擴充 API 副本，還需實作分散式 lease、worker discovery、容量預留與 job 狀態來取代程序內鎖；既有 Transport 邊界可沿用。已支援 managed／ephemeral 保留策略、閒置 TTL 清理與 Pi 程序暫停；尚未實作 Agent 刪除、artifact HTTP 下載與跨 worker 遷移。
+
+## MongoDB Session Manager
+
+Session Manager 的 Agent／session registry 使用 MongoDB。Compose 已包含本機 MongoDB、初始化應用帳號與持久化 volume；全新環境可直接 `docker compose up --build -d --wait`。設定與操作方式見 [MongoDB 手冊](docs/mongodb.md)。
+
+Helm 連線外部 MongoDB，透過 `mongodb.existingSecret` 引用公司 Vault 同步的 Kubernetes Secret，將 `MONGODB_URI`、`MONGODB_USERNAME`、`MONGODB_PASSWORD` 注入 API Pod。database／authSource／timeout 與 optional CA Secret 可分別設定；不將 DB 認證傳入 sandbox。API 仍為單副本，外層對話使用 SQLiteSession，worker 本地 metadata 獨立保存。
+
+環境變數的必填／選填、Compose 密碼預設、輪替與備份請見 [設定參考](docs/configuration.md)。真實本機資料庫回歸測試使用 `make test-mongodb`。
+
+MongoDB 設計文件：[Schema 與 index design](docs/mongodb-schema.md)、[Registry 架構設計](docs/mongodb-registry-architecture.md)。Document models 使用 Pydantic，來源為 [`orchestrator/documents.py`](orchestrator/documents.py)。
 
 ## Kubernetes 多 sandbox 與 session 生命週期
 

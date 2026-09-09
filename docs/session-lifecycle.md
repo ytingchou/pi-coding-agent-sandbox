@@ -13,7 +13,7 @@
 
 暫停會終止該 Pi namespace 中的背景子程序。需要持續運行背景工作的部署，可設 `PI_IDLE_DISCONNECT_SECONDS=0`；不應把這些 session 當成獨立服務管理平台。
 
-舊 registry 自動補上欄位，既有 session 全部保持 `managed`，不會因升級開始刪除。TTL 存在每筆 binding 中，修改環境的預設 TTL 不會改變既有 session。切換保留策略會更新 TTL 並重新計算閒置時間。
+TTL 存在每筆 binding 中，修改環境的預設 TTL 不會改變既有 session。切換保留策略會更新 TTL 並重新計算閒置時間。
 
 ## API 使用
 
@@ -55,7 +55,7 @@ curl -fsS -H "Authorization: Bearer $API_TOKEN" "$API_URL/sessions/cleanup"
 - 刪除先把 binding 標成 `deleting`，再停止 Pi／刪除目錄與 worker SQLite 記錄，成功後才移除 binding。Worker 不可達時保留待刪記錄，下一次 sweep 重試；不會把 session 移到別的 Pod，也不會自動重送 prompt。
 - 背景 sweep 預設每 60 秒執行一次。實際刪除時間是 TTL 到期後的某次 sweep，還受正在執行的工作、worker 連線與檔案清理時間影響，不是精確 deadline。
 - Worker 重啟後 Pi 程序原本就不在；metadata／檔案由 PVC 保留並於下次使用恢復。API 停止期間不會自動刪除 session；Worker 仍可自行暫停閒置程序。
-- API registry 是刪除策略的來源；不會對掃描出的未知目錄擅自刪除。必須一起備份／恢復 API registry 與各 worker 的 state、sessions PVC；遺失 API registry 的孤兒資料需人工盤點。
+- API registry 是刪除策略的來源；不會對掃描出的未知目錄擅自刪除。必須一起備份／恢復 MongoDB registry、API 對話歷史與各 worker 的 state、sessions PVC；遺失 API registry 的孤兒資料需人工盤點。
 - 刪除會移除該 session 的生成程式、Pi transcript、檔案和本地套件。API 的 Agent 記錄與 `conversations.sqlite` 對話歷史不會刪除，也不會自動匯出證據或回收 PVC 配額。需要保留時先用 [驗證工具](session-verification.md) collect。
 - 刪除完成後重用已釋放 UID slot，避免 long-running Pod 的 UID 隨 session 總建立數無限增長；上限保持在 Pod user namespace 的 65536 UID 範圍內。不得繞過 worker 管理自行啟動同 UID 的宿主程序。
 

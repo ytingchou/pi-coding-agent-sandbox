@@ -55,6 +55,7 @@ artifacts/my-verification/
   report.json
   sessions/<session-id>/
     state/session.jsonl
+    state/python-packages.json # 啟動時的有效 Python 套件與 sqlite3 版本
     trace.json
     outer-history.json
     extension-audit.jsonl       # 有工具執行時才會存在
@@ -154,7 +155,7 @@ pi 的輸入 = usage.input + usage.cacheRead + usage.cacheWrite
 pi 的輸出 = usage.output
 ```
 
-這個版本的 pi `input` 不含 cacheRead／cacheWrite；但 `totalTokens` 已包含快取，所以不能再把 cacheRead 加到 totalTokens。外層 SDK `input_tokens` 已經是輸入總數，也不要另外加快取。
+這個版本的 pi `input` 不含 cacheRead／cacheWrite；但 `totalTokens` 已包含快取，所以不能再把 cacheRead 加到 totalTokens。外層 SDK `input_tokens` 已經是輸入總數，也不要另外加快取。內部 gateway 若不回傳 usage，或用零填補缺失欄位，本地資料無法證明精確消耗，仍需對照 gateway 的用量紀錄。
 
 工具直接加總原生 assistant usage，**不**從 `agent_end` 再加一次、不從 extension audit 計數，也不把 outer-history 複製的 pi 內容再當成 pi 呼叫用量。外層模型讀取工具結果所產生的輸入 token 本來就是另一筆實際用量，應保留在外層統計。
 

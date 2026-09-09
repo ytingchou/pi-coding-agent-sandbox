@@ -17,6 +17,8 @@ flowchart LR
     R --> API
 ```
 
+Sandbox 使用 **Python 3.12**，在 image build 時用 pip／uv 預裝 requests、MinIO SDK 等套件，並把實際套件清單與離線政策注入 pi；session 直接使用唯讀 image 套件。外層與 pi 都支援內部 OpenAI 相容模型的 base URL／key／model 設定，詳見 [離線套件與內部模型部署](docs/python-packages.md)。
+
 ## 快速開始
 
 需要 Docker Engine / Docker Desktop 的 Linux containers 與 Docker Compose；第一次建置需要網路。主機不需要安裝 Python、Node.js 或 pi。
@@ -39,7 +41,43 @@ Demo 建立一個邏輯 Agent 以及三個 pi sessions：兩個在 `sandbox-1`�
 
 API 文件：<http://localhost:8000/docs>。所有操作 API 都需 `Authorization: Bearer <API_TOKEN>`；`/health` 不需 token。預設只發布到主機的 `127.0.0.1`，worker port 不發布到主機。Swagger 可在各 operation 的 `authorization` header 欄位填入完整 Bearer 字串。
 
-沒有 API key 也能啟動、建立 sessions 及跑下列離線測試，但 `/run` 會回傳 503。外層與 pi 預設使用 `gpt-4.1-mini`；可以分別設定 `OPENAI_MODEL`、`PI_MODEL`。本範例的 pi provider 固定為 OpenAI。
+沒有 API key 也能啟動、建立 sessions 及跑下列離線測試，但 `/run` 會回傳 503。外層與 pi 預設使用 `gpt-4.1-mini`；可以分別設定 `OPENAI_MODEL`、`PI_MODEL`。預設使用 OpenAI，也可分別設定 OPENAI_BASE_URL／PI_BASE_URL 與 API mode 連到內部相容 gateway。
+
+## 環境設定與建議值
+
+[`.env.example`](.env.example) 提供本機 demo 預設；完整的必填／選填規則、留空行為與 K8s 配置見 [環境變數設定參考](docs/configuration.md)。「選填」表示程式有 fallback，**公司內部部署仍需明填兩層 URL／model／認證，並更換兩組控制 token**。
+
+| 變數 | 必填／選填與預設 | 公司環境建議 |
+|---|---|---|
+| `OPENAI_API_KEY` | `/run` 條件必填；預設空 | 外層 gateway key，透過 Secret 注入 |
+| `OPENAI_MODEL`、`PI_MODEL` | 選填，各自預設 `gpt-4.1-mini` | 分別填 gateway 實際支援的 model ID，必須支援工具呼叫 |
+| `OPENAI_BASE_URL`、`PI_BASE_URL` | 選填；空值指向公網 OpenAI | **兩個都填**內部 `/v1` base URL，彼此不繼承 |
+| `OPENAI_API_MODE`、`PI_API_MODE` | 選填；有 base URL 時預設 `chat_completions`；都空時沿用 OpenAI Responses／pi 內建 provider | 明填 `chat_completions`，或服務確實支援的 `responses` |
+| `PI_API_KEY` | 選填；空值沿用 `OPENAI_API_KEY` | 建議分開配發；只有 key 有跨層 fallback |
+| `PI_CONTEXT_WINDOW` | 選填，`128000`；只作用於自訂 pi provider | 改成模型／gateway 真實上限，不能假設 128000 一定可用 |
+| `PI_MAX_TOKENS` | 選填，`4096`；只作用於自訂 pi provider | 可先用 4096，且不能超過 context／服務上限；不是整個 run 的 token 預算 |
+| `PI_MODEL_COMPAT` | 選填，空；只作用於自訂 pi provider | 先留空，依 gateway 文件調整；不建議無故關閉 streaming usage |
+| `API_TOKEN`、`SANDBOX_TOKEN` | 選填，預設分別為 `local-demo-change-me`／`worker-demo-change-me` | 部署必改成兩組不同隨機值；SANDBOX_TOKEN 在 API 與各 worker 要一致 |
+| `API_PORT` | 選填，`8000` | 無衝突就保留；只影響本機 port 映射，不控制 K8s Service |
+| `PROMPT_TIMEOUT` | 選填，`180` 秒／pi prompt | 先用 180；依實測排隊／執行時間調整，不是完整 Agent run 上限 |
+| `MAX_SESSIONS` | 選填，每 worker `8`，包含閒置 sessions | 初次部署可從 `2` 開始，依記憶體與工作量調整，沒有容量保證 |
+
+自訂 pi provider 是指 PI_BASE_URL 或 PI_API_MODE 至少填一個；否則 context、max tokens、compat 會沿用 pi 內建模型設定。只填 API mode 而不填 base URL，仍會指向公網 OpenAI。
+
+內部 gateway 的核心設定範例（所有 placeholder 需替換）：
+
+```dotenv
+OPENAI_BASE_URL=http://coordinator-gateway.models.svc.cluster.local:8000/v1
+OPENAI_API_KEY=replace-with-outer-key
+OPENAI_MODEL=replace-with-coordinator-model-id
+OPENAI_API_MODE=chat_completions
+PI_BASE_URL=http://coding-gateway.models.svc.cluster.local:9000/v1
+PI_API_KEY=replace-with-pi-key
+PI_MODEL=replace-with-coding-model-id
+PI_API_MODE=chat_completions
+```
+
+改 `.env` 後執行 `docker compose up -d --wait` 套用；只用 `restart` 不會更新環境值。改套件清單／Dockerfile 才需重新 build。`PYTHON_PACKAGE_INSTALLER` 是 build ARG（預設 `uv`），不是可直接放進 `.env` 生效的 runtime 設定。
 
 ## 呼叫 API
 
@@ -116,7 +154,7 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 | 項目 | 實作 |
 |---|---|
 | 檔案 | 每個 session 只掛載自己的資料到 `/workspace`，其他 sessions、worker 原始碼、worker DB 都不掛入 |
-| Python 套件 | 獨立 `/workspace/venv`；PATH 優先使用該 venv，`PYTHONNOUSERSITE=1` |
+| Python 套件 | 獨立 `/workspace/venv`，可讀取 image 預裝的唯讀 base site-packages；PATH 優先使用該 venv，`PYTHONNOUSERSITE=1` |
 | HOME／pi 設定 | 獨立 `/workspace/home` 與 pi session JSONL；啟用原生資源載入，skills、extensions、packages 與 npm cache 都屬於個別 session |
 | 暫存 | 獨立 `/tmp`、`/run` tmpfs；程序重啟後清空 |
 | 程序 | 獨立 PID、user、IPC、UTS namespace 與 `/proc`，看不到 sibling 或 supervisor 程序 |
@@ -166,4 +204,4 @@ docker compose exec api python scripts/smoke.py
 - [Pi 官方 RPC protocol](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/rpc.md)
 - [Bubblewrap](https://github.com/containers/bubblewrap)
 
-使用 `openai-agents==0.22.1` 與目前維護中的 `@earendil-works/pi-coding-agent==0.85.1`；pi 的 transitive dependencies 由 `sandbox/package-lock.json` 固定。Python 直接依賴固定版本，transitive dependencies 與 base-image tags 未全數鎖定 digest。
+使用 `openai-agents==0.22.1` 與目前維護中的 `@earendil-works/pi-coding-agent==0.85.1`；pi 的 transitive dependencies 由 `sandbox/package-lock.json` 固定。Python 直接依賴固定版本，transitive dependencies 與 base-image tags 未全數鎖定 digest。應用 Python 套件的實際版本另於 image build 產生 manifest。

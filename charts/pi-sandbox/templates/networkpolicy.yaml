@@ -1,0 +1,52 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- range $component := list "api" "worker" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "pi.fullname" $ }}-{{ $component }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "pi.labels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            {{- if eq $component "worker" }}
+            matchLabels:
+              {{- include "pi.labels" $ | nindent 14 }}
+              app.kubernetes.io/component: api
+            {{- else }}
+            {}
+            {{- end }}
+      ports:
+        - {protocol: TCP, port: {{ ternary 8000 8080 (eq $component "api") }}}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    {{- if eq $component "api" }}
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "pi.labels" $ | nindent 14 }}
+              app.kubernetes.io/component: worker
+      ports:
+        - {protocol: TCP, port: 8080}
+    {{- with $.Values.networkPolicy.apiEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- else }}
+    {{- with $.Values.networkPolicy.sandboxEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

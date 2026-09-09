@@ -1,5 +1,6 @@
 extends: default
 ignore: |
+  charts/*/templates/
   .git/
   .venv/
   .ruff_cache/

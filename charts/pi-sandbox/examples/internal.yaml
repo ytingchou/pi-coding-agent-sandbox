@@ -1,0 +1,23 @@
+# Replace registry, immutable tags, gateway addresses and allowed CIDRs.
+images:
+  api: {repository: registry.example.internal/pi-api, tag: uv-lifecycle-v1}
+  sandbox: {repository: registry.example.internal/pi-worker, tag: uv-lifecycle-v1}
+existingSecret: pi-sandbox-secrets
+api:
+  baseUrl: https://agent-model.example.internal/v1
+  model: company-agent-model
+  apiMode: chat_completions
+sandbox:
+  replicas: 3
+  maxSessions: 2
+  baseUrl: https://pi-model.example.internal/v1
+  model: company-coding-model
+  apiMode: chat_completions
+networkPolicy:
+  # Replace these documentation IPs with actual gateway destination IPs.
+  apiEgress:
+    - to: [{ipBlock: {cidr: 192.0.2.10/32}}]
+      ports: [{protocol: TCP, port: 443}]
+  sandboxEgress:
+    - to: [{ipBlock: {cidr: 192.0.2.11/32}}]
+      ports: [{protocol: TCP, port: 443}]

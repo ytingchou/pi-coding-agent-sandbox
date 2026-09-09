@@ -7,6 +7,7 @@
 - `sandbox/resources/`: session bootstrap, skills, TypeScript Pi extensions and the local stats-kit package.
 - `scripts/`: demos and host-side verification / evidence export tools.
 - `tests/`: unit tests, deterministic HTTP model gateway tests and Linux isolation integration tests.
+- `charts/pi-sandbox/`: StatefulSets, direct worker DNS, retained PVCs and network policies.
 - `docs/`: deployment, configuration and evidence collection instructions. Keep README links current.
 
 ## Dependencies and tooling
@@ -52,3 +53,13 @@
 - Token reports must separate outer SDK and Pi usage, count cached input once and disclose missing provider usage.
 - Any environment-variable change must update `.env.example`, `docs/configuration.md` and the README summary, including defaults and optional/required behavior.
 - Keep conventional commits focused and independently meaningful when commits are requested. Do not push without user authorization.
+
+## Kubernetes and session lifecycle
+
+- Keep exactly one API replica/process. Workers need distinct ordinal DNS and state/sessions PVCs.
+- Preserve OnDelete updates and Retain PVC policies; never silently move bindings during scaling.
+- Ephemeral expiry must check both Agent locks and worker session activity. Managed sessions never expire automatically.
+- Idle Pi suspension preserves files/history and must skip busy sessions. Successful deletion must stop the namespace before reusing its UID.
+- Keep deletion failures addressable and retryable; never drop a binding before the worker confirms deletion.
+- Run `make lint-helm` for chart changes and `make test-container` for lifecycle/isolation changes.
+- Chart rendering and schema validation are not proof of live cluster compatibility. Disclose untested CSI/CNI/userns/admission behavior.

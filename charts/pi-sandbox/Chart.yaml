@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pi-sandbox
+description: Agents SDK API with persistent, isolated Pi sandbox workers
+version: 0.1.0
+appVersion: "0.1.0"
+type: application
+kubeVersion: ">=1.33.0-0"

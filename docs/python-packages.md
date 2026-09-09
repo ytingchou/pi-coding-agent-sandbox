@@ -123,7 +123,7 @@ PI_MODEL_COMPAT={"supportsUsageInStreaming":false}
 
 這個設定適用於不接受 `stream_options.include_usage` 的 gateway，但可能無法取得 pi 的 token 用量。不能把缺失或回傳的零 usage 視為實際免費；本機驗證帳本不是 gateway 帳單。
 
-K8s 中請把上述設定分別放進 API 與 worker Deployment 的 env；API keys 用 `secretKeyRef`，image 在有網路的 CI 建置後推到內部 registry。這個專案目前提供 Compose 範例，未提供完整 K8s manifests。內部 HTTPS 若使用公司 CA，需將 CA 加入 image 信任鏈，並依 Python／Node.js client 設定正確的 CA 檔；不要關閉 TLS 驗證。
+K8s 中透過 Helm values 分別設定 API 與 worker StatefulSet 的 env；API keys 用 `secretKeyRef`，image 在有網路的 CI 建置後推到內部 registry。多 sandbox Chart 與詳細步驟見 [Kubernetes 部署手冊](kubernetes.md)。內部 HTTPS 若使用公司 CA，需將 CA 加入 image 信任鏈，並依 Python／Node.js client 設定正確的 CA 檔；不要關閉 TLS 驗證。
 
 ## 5. 無外網實際驗證
 

@@ -174,7 +174,21 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 範例中 worker 名稱是固定身分，不可用 `docker compose --scale sandbox-1=3` 直接替代；多副本共用 DNS 與 volume 會破壞 session affinity。遠端 worker 也可放入 endpoints，但跨主機部署需要 HTTPS、網路存取政策與獨立管理憑證。
 
-目前 API 與每個 worker 必須各維持 **一個 Uvicorn process**。這是刻意的範例限制：asyncio locks 與 RPC connections 是程序內狀態。要擴充 API 副本，需以 PostgreSQL/Redis lease 分散式鎖、worker discovery、容量預留與 job 狀態取代本機鎖／SQLite；既有 Transport 邊界可沿用。閒置 session 目前需手動 DELETE，尚未實作 TTL、Agent 刪除、artifact 下載與遷移。
+目前 API 與每個 worker 必須各維持 **一個 Uvicorn process**。這是刻意的範例限制：asyncio locks 與 RPC connections 是程序內狀態。要擴充 API 副本，需以 PostgreSQL/Redis lease 分散式鎖、worker discovery、容量預留與 job 狀態取代本機鎖／SQLite；既有 Transport 邊界可沿用。已支援 managed／ephemeral 保留策略、閒置 TTL 清理與 Pi 程序暫停；尚未實作 Agent 刪除、artifact HTTP 下載與跨 worker 遷移。
+
+## Kubernetes 多 sandbox 與 session 生命週期
+
+提供 [Helm chart 與 README](charts/pi-sandbox/README.md)：單一 API 與可設定數量的 sandbox StatefulSet，worker 固定 DNS、每 Pod 獨立 PVC、Secret 引用、資源限制與 NetworkPolicy。公司內部的兩層 OpenAI 相容模型仍可分別設定 URL、key、model。部署步驟、叢集必要條件、OnDelete 更新流程與擴縮容注意事項見 [Kubernetes 部署手冊](docs/kubernetes.md)。
+
+Session 建立時預設 `retention: managed`，需明確刪除；設定 `retention: ephemeral` 可在閒置 TTL 後自動刪除。兩者都能暫停閒置 Pi 程序、保留資料並於下次使用恢復，減少長駐 Pod 記憶體占用。API 用法、dry-run 與清理規則見 [Session 生命週期手冊](docs/session-lifecycle.md)。
+
+| 選填環境變數 | 預設 | 用途 |
+|---|---|---|
+| `SESSION_IDLE_TTL_SECONDS` | `3600` | 新 ephemeral session 的預設閒置 TTL |
+| `SESSION_CLEANUP_INTERVAL_SECONDS` | `60` | API／worker 背景掃描間隔；`0` 關閉 |
+| `PI_IDLE_DISCONNECT_SECONDS` | `300` | 閒置 Pi 程序停止時間，保留資料；`0` 關閉 |
+
+本機已驗證 Helm 渲染、Kubernetes 1.33 schema 與無外網 Pi 整合測試；尚未在真實 K8s 叢集完成安裝。Worker 需要支援 Pod user namespaces、巢狀 Bubblewrap 與相容 CSI 的 Linux 節點，詳見部署手冊。
 
 ## 開發環境與程式品質
 
@@ -198,7 +212,7 @@ docker compose exec api python scripts/smoke.py
 
 隔離測試會在臨時目錄中建立兩個真 pi sessions：A 寫 Python／執行並透過 pip 安裝本機 wheel，B 驗證看不到 A 的檔案、套件、tmp 與 supervisor；測試程序／權限限制、不同 session 並行，以及 worker 物件重建後資料延續與刪除。測試透過 pi 的 RPC `bash` 指令執行，**不會假裝是模型生成程式碼**。真實雙層模型端到端驗證請用填好 API key 的 `scripts/demo.py`。
 
-已於 Docker Desktop Linux/amd64 驗證：18 個測試通過，skills/extensions/packages 的完整 Compose 離線 demo 通過；原有 Compose smoke test 也已通過。真實 API 的完整 basic 與 resources live 流程也已完成，過程中修正 session 選擇與缺少執行證據的問題並補跑相關步驟。已記錄 54,715 tokens（含補跑及快取輸入）；最初一次被拒絕的外層工具呼叫未保存模型 usage，因此實際總消耗高於此數。詳見 [完整驗證報告](reports/full-sandbox-demo.json)。
+早期版本於 Docker Desktop Linux/amd64 的驗證紀錄：18 個測試通過，skills/extensions/packages 的完整 Compose 離線 demo 通過；原有 Compose smoke test 也已通過。真實 API 的完整 basic 與 resources live 流程也已完成，過程中修正 session 選擇與缺少執行證據的問題並補跑相關步驟。已記錄 54,715 tokens（含補跑及快取輸入）；最初一次被拒絕的外層工具呼叫未保存模型 usage，因此實際總消耗高於此數。詳見 [完整驗證報告](reports/full-sandbox-demo.json)。
 
 停止服務並保留狀態：`docker compose down`。清除所有 sample volumes 與 sessions：`docker compose down -v`（會刪除資料）。
 

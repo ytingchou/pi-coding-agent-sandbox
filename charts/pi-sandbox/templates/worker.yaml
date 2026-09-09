@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "pi.fullname" . }}-workers
+spec:
+  serviceName: {{ include "pi.fullname" . }}-workers
+  replicas: {{ .Values.sandbox.replicas }}
+  # Do not silently evict active sessions during an image/config upgrade.
+  updateStrategy: {type: OnDelete}
+  persistentVolumeClaimRetentionPolicy: {whenDeleted: Retain, whenScaled: Retain}
+  selector:
+    matchLabels:
+      {{- include "pi.labels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "pi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/values: {{ toJson .Values | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:{{ toYaml . | nindent 8 }}
+      {{- end }}
+      hostUsers: false
+      nodeSelector:{{ toYaml .Values.sandbox.nodeSelector | nindent 8 }}
+      tolerations:{{ toYaml .Values.sandbox.tolerations | nindent 8 }}
+      containers:
+        - name: worker
+          image: "{{ .Values.images.sandbox.repository }}:{{ .Values.images.sandbox.tag }}"
+          imagePullPolicy: {{ .Values.images.sandbox.pullPolicy }}
+          resources:{{ toYaml .Values.sandbox.resources | nindent 12 }}
+          securityContext:{{ toYaml .Values.sandbox.securityContext | nindent 12 }}
+          ports:
+            - {name: http, containerPort: 8080}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 20
+          env:
+            - name: SANDBOX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: SANDBOX_TOKEN
+            - name: PI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: PI_API_KEY
+            - name: SANDBOX_ID
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: PI_MODEL_COMPAT
+              value: {{ toJson .Values.sandbox.modelCompat | quote }}
+            - name: PROMPT_TIMEOUT
+              value: {{ .Values.promptTimeoutSeconds | quote }}
+            - name: SESSION_CLEANUP_INTERVAL_SECONDS
+              value: {{ .Values.lifecycle.cleanupIntervalSeconds | quote }}
+            - name: PI_MODEL
+              value: {{ .Values.sandbox.model | quote }}
+            - name: PI_BASE_URL
+              value: {{ .Values.sandbox.baseUrl | quote }}
+            - name: PI_API_MODE
+              value: {{ .Values.sandbox.apiMode | quote }}
+            - name: PI_CONTEXT_WINDOW
+              value: {{ .Values.sandbox.contextWindow | quote }}
+            - name: PI_MAX_TOKENS
+              value: {{ .Values.sandbox.maxTokens | quote }}
+            - name: MAX_SESSIONS
+              value: {{ .Values.sandbox.maxSessions | quote }}
+            - name: PI_IDLE_DISCONNECT_SECONDS
+              value: {{ .Values.lifecycle.piIdleDisconnectSeconds | quote }}
+          volumeMounts:
+            - {name: state, mountPath: /state}
+            - {name: sessions, mountPath: /sessions}
+  volumeClaimTemplates:
+    - metadata:
+        name: state
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.workerStateSize }}
+    - metadata:
+        name: sessions
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.workerSessionsSize }}

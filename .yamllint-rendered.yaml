@@ -1,0 +1,6 @@
+extends: .yamllint.yaml
+# Helm toYaml emits indentless lists alongside handwritten indented lists.
+rules:
+  indentation:
+    spaces: 2
+    indent-sequences: whatever

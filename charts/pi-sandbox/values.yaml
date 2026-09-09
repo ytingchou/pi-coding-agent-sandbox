@@ -1,0 +1,57 @@
+# Build and push both images before installing. No packages download at runtime.
+images:
+  api: {repository: pi-agents-sample-api, tag: latest, pullPolicy: IfNotPresent}
+  sandbox: {repository: pi-agents-sample-sandbox-1, tag: latest, pullPolicy: IfNotPresent}
+imagePullSecrets: []
+# Existing Secret keys: API_TOKEN, SANDBOX_TOKEN, OPENAI_API_KEY, PI_API_KEY.
+existingSecret: pi-sandbox-secrets
+api:
+  model: gpt-4.1-mini
+  baseUrl: ""
+  apiMode: responses
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: "1", memory: 1Gi}
+sandbox:
+  replicas: 2
+  maxSessions: 8
+  model: gpt-4.1-mini
+  baseUrl: ""
+  apiMode: chat_completions
+  contextWindow: 128000
+  maxTokens: 4096
+  modelCompat: {}
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "2", memory: 2Gi}
+  nodeSelector: {kubernetes.io/os: linux}
+  tolerations: []
+  # Requires nodes/runtime/CSI supporting Pod user namespaces and nested bwrap.
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    runAsNonRoot: false
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+      add: [SETUID, SETGID, CHOWN, DAC_OVERRIDE, KILL]
+    seccompProfile: {type: Unconfined}
+    appArmorProfile: {type: Unconfined}
+    procMount: Unmasked
+persistence:
+  # Empty uses the cluster default StorageClass; use a CSI driver with userns support.
+  storageClass: ""
+  apiSize: 1Gi
+  workerStateSize: 1Gi
+  workerSessionsSize: 10Gi
+lifecycle:
+  cleanupIntervalSeconds: 60  # 0 disables background sweeps (API and workers).
+  ephemeralIdleTtlSeconds: 3600  # Only sessions explicitly created as ephemeral.
+  piIdleDisconnectSeconds: 300  # 0 disables process suspension; files remain.
+promptTimeoutSeconds: 180
+terminationGracePeriodSeconds: 240
+networkPolicy:
+  enabled: true
+  # Allow only DNS and API -> worker by default. Add your internal gateway/MinIO rules.
+  apiEgress: []
+  sandboxEgress: []

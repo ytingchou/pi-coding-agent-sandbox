@@ -16,9 +16,16 @@ repos:
         entry: uv run --locked yamllint --strict
         language: system
         types: [yaml]
+        exclude: ^charts/[^/]+/templates/
       - id: hadolint
         name: Dockerfile lint
         entry: make lint-docker
         language: system
         files: '(^|/)Dockerfile$|^\.hadolint\.yaml$'
+        pass_filenames: false
+      - id: helm
+        name: Helm chart checks
+        entry: make lint-helm
+        language: system
+        files: ^charts/|^scripts/check_helm\.py$|^\.yamllint-rendered\.yaml$
         pass_filenames: false

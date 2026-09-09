@@ -6,7 +6,7 @@
 
 Compose 讀取 `.env` 作變數替換，再把 `compose.yaml` 列出的值傳入 container。Shell 中已 export 的同名變數可能覆蓋 `.env`；遇到設定不符時先檢查是否有舊的 export。不要列印含金鑰的完整環境或 Compose 展開結果。
 
-這份 Compose 的 `${VAR:-default}` 在變數未設定或留空時使用 default。以下預設值以透過本專案 Compose 啟動為準；K8s 不會自動讀取 `.env`，應以 Deployment env／ConfigMap／Secret 注入。
+這份 Compose 的 `${VAR:-default}` 在變數未設定或留空時使用 default。以下預設值以透過本專案 Compose 啟動為準；K8s 不會自動讀取 `.env`，應以 StatefulSet env／Secret（見 [Helm 部署手冊](kubernetes.md)） 注入。
 
 - **條件必填**：執行特定功能時需要提供。
 - **選填**：可省略，會採預設／fallback。
@@ -113,8 +113,8 @@ MAX_SESSIONS=2
 
 K8s 建議分配：
 
-- API Deployment：OPENAI_*、API_TOKEN、SANDBOX_TOKEN、PROMPT_TIMEOUT，以及實際 SANDBOX_ENDPOINTS。
-- Worker Deployments：PI_*、SANDBOX_TOKEN、PROMPT_TIMEOUT、MAX_SESSIONS、各自 SANDBOX_ID；需要 key fallback 時另外注入 OPENAI_API_KEY。
+- API StatefulSet：OPENAI_*、API_TOKEN、SANDBOX_TOKEN、PROMPT_TIMEOUT，以及實際 SANDBOX_ENDPOINTS。
+- Worker StatefulSet：PI_*、SANDBOX_TOKEN、PROMPT_TIMEOUT、MAX_SESSIONS、各自 SANDBOX_ID；需要 key fallback 時另外注入 OPENAI_API_KEY。
 - keys／tokens 放 Secret，其餘可用 ConfigMap。API_PORT 是本機 Compose 設定，不必放進 worker。
 
 公司網路部署、預裝 Python 套件與無外網驗證見 [離線 sandbox 文件](python-packages.md)。
@@ -125,7 +125,7 @@ K8s 建議分配：
 |---|---|---|
 | `PYTHON_PACKAGE_INSTALLER` | Docker build ARG，預設 `uv` | `docker compose build --build-arg PYTHON_PACKAGE_INSTALLER=pip sandbox-1 sandbox-2`；只寫入 `.env` 不會自動生效 |
 | 預裝 Python 套件 | `pyproject.toml` 的 `sandbox` dependency group 與 `uv.lock` | 修改後重新 build、部署 image；不是 runtime 環境變數 |
-| `SANDBOX_ENDPOINTS` | compose.yaml 的 JSON，固定指向 sandbox-1、sandbox-2 | 增加 worker 時修改 Compose／K8s Deployment；只放 `.env` 不會覆蓋目前固定值 |
+| `SANDBOX_ENDPOINTS` | compose.yaml 的 JSON，固定指向 sandbox-1、sandbox-2 | 增加 worker 時修改 Compose；Helm 依 replicas 產生固定 Pod DNS；只放 `.env` 不會覆蓋目前固定值 |
 | `SANDBOX_ID` | Compose 每個 worker 的固定名稱 | 每個 worker 身分需唯一，並與 endpoints 的 key 一致 |
 | `OPENAI_AGENTS_DISABLE_TRACING` | API Compose 固定為 `1` | 雲端 tracing 目前停用；本機 session tracing 不受影響。只放 `.env` 不會改變固定值 |
 | `PIP_NO_INDEX`、`UV_OFFLINE`、`UV_PYTHON_DOWNLOADS` | isolation.py 分別固定為 `1`、`true`、`never` | 由程式控制 session 的預設安裝政策，不從 worker 任意環境變數繼承 |
@@ -142,6 +142,19 @@ docker compose up -d --wait
 docker compose ps
 ```
 
-只改 `.env` 不需要重新 build；改預裝套件或 Dockerfile 才需要 `docker compose up --build -d --wait`。K8s 請更新 Deployment／Secret 後按公司的流程 rollout；已啟動的程序不會自動載入新的環境值。先完成正在執行的任務再更新，以免中斷 session。
+只改 `.env` 不需要重新 build；改預裝套件或 Dockerfile 才需要 `docker compose up --build -d --wait`。K8s Chart 使用 OnDelete：更新 Helm values／Secret 後，先等工作完成再明確重建對應 Pods，詳見 [部署手冊](kubernetes.md)；已啟動的程序不會自動載入新的環境值。先完成正在執行的任務再更新，以免中斷 session。
 
 可用 [session 驗證工具](session-verification.md) 檢查端點的實際 tool calling；`verify` 會呼叫設定好的模型，`collect` 不會。這份文件只說明設定，不會修改你的真實 `.env` 或觸發任何模型請求。
+
+
+## Session 清理（全部選填）
+
+| 環境變數 | 預設／範圍 | 使用位置與建議 |
+|---|---|---|
+| `SESSION_IDLE_TTL_SECONDS` | `3600`，正整數 | API：新建 ephemeral session 的 TTL；可用 request 的 idle_ttl_seconds 覆蓋，managed 不適用 |
+| `SESSION_CLEANUP_INTERVAL_SECONDS` | `60`，非負整數 | API／worker：背景刪除／暫停 sweep 間隔；0 關閉背景 sweep |
+| `PI_IDLE_DISCONNECT_SECONDS` | `300`，非負整數 | worker：暫停 idle Pi 程序，保留資料；0 關閉暫停 |
+
+省略／留空 `.env` 使用 Compose 預設；直接注入 Pod env 時請提供有效整數，不要留空。Chart 由 `lifecycle.ephemeralIdleTtlSeconds`、`cleanupIntervalSeconds`、`piIdleDisconnectSeconds` 設定，JSON schema 會拒絕負值及 0 TTL。通常採用 3600／60／300，再依工作間隔與記憶體觀察調整；需要常駐背景子程序則關閉 Pi 暫停。舊 session 保持 managed，不會自動變成 ephemeral。詳見 [生命週期操作](session-lifecycle.md)。
+
+Helm 的非環境設定、storage、image、replicas、NetworkPolicy 見 [values.yaml](../charts/pi-sandbox/values.yaml)；內部端點範例見 [internal.yaml](../charts/pi-sandbox/examples/internal.yaml)。`existingSecret` 預設 pi-sandbox-secrets，但 Secret 本身必須預先建立，四個 key 皆須存在；Chart 不提供可用的預設認證。

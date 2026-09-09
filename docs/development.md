@@ -2,7 +2,7 @@
 
 ## 安裝與依賴分組
 
-主機使用 Python 3.12、uv 0.10.x（CI／Docker 固定 0.10.9）、GNU Make，以及 Docker Compose。uv 安裝方式見 [官方安裝文件](https://docs.astral.sh/uv/getting-started/installation/)。Hadolint 預設使用固定版本 Docker image，不必在主機另裝 binary。
+主機使用 Python 3.12、uv 0.10.x（CI／Docker 固定 0.10.9）、GNU Make、Helm 3，以及 Docker Compose。uv 安裝方式見 [官方安裝文件](https://docs.astral.sh/uv/getting-started/installation/)。Hadolint 預設使用固定版本 Docker image，不必在主機另裝 binary。
 
 ```bash
 uv sync --locked
@@ -51,7 +51,8 @@ FastAPI 的 Depends／Header 宣告和 Path 不可變預設值列入 Bugbear 的
 ```bash
 make lint-yaml
 make lint-docker
-make lint        # 全部三類檢查
+make lint-helm   # Helm lint、渲染與結構驗證
+make lint        # Python、YAML、Dockerfile、Helm
 ```
 
 - yamllint：YAML 語法、重複 key、縮排、尾端空白與 truthy 值；使用 strict 模式。允許省略 document-start；GitHub Actions 的 `on` key 不當作布林錯誤。Compose 的 `!reset` 保留。
@@ -87,3 +88,6 @@ uv run --locked pre-commit run --all-files
 Hook 使用本專案 uv lock，不另外下載不一致的 Ruff 版本；Dockerfile hook 需要 Docker。沒有自動修改你現有的 Git hooks。GitHub Actions 的 Quality workflow 會執行 `make check` 和 `make test-container`，不使用模型金鑰。
 
 Agent 協作規範見 [AGENTS.md](../AGENTS.md)，部署環境變數見 [configuration.md](configuration.md)。
+
+
+Helm 模板由 `make lint-helm` 渲染後檢查，原始 Go templates 不直接交給 yamllint；渲染 YAML 僅額外允許 Helm toYaml 的 indentless lists（`.yamllint-rendered.yaml`）。Chart 測試涵蓋 1／3 workers 的直接 DNS 路由、PVC、Secret refs、NetworkPolicy 和不合法 values。修改生命週期／chart 時還需 `make test-container`；K8s schema／server admission 驗證方式見 [kubernetes.md](kubernetes.md)。

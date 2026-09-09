@@ -9,7 +9,7 @@ lock:
 format:
 	$(UV) run --locked ruff check --fix .
 	$(UV) run --locked ruff format .
-lint: lint-python lint-yaml lint-docker
+lint: lint-python lint-yaml lint-docker lint-helm
 lint-python:
 	$(UV) run --locked ruff check .
 	$(UV) run --locked ruff format --check .
@@ -23,3 +23,7 @@ test-container:
 	docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
 	docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 /opt/server/bin/python -m pytest -p no:cacheprovider -q
 check: lint test
+
+.PHONY: lint-helm
+lint-helm:
+	$(UV) run --locked python scripts/check_helm.py

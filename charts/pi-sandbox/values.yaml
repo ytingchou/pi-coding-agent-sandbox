@@ -55,3 +55,15 @@ networkPolicy:
   # Allow only DNS and API -> worker by default. Add your internal gateway/MinIO rules.
   apiEgress: []
   sandboxEgress: []
+
+# External MongoDB only. Vault/controller must synchronize this Kubernetes Secret first.
+mongodb:
+  existingSecret: pi-mongodb
+  uriKey: MONGODB_URI
+  usernameKey: MONGODB_USERNAME  # Optional Secret key if credentials are already in URI.
+  passwordKey: MONGODB_PASSWORD
+  database: pi_agents
+  authSource: admin
+  timeoutMS: 5000
+  # Optional CA Secret containing ca.crt; mounted read-only only in the API Pod.
+  tlsCASecret: ""

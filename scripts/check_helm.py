@@ -53,6 +53,14 @@ def main():
             "whenScaled": "Retain",
         }
         api_env = {e["name"]: e for e in api["template"]["spec"]["containers"][0]["env"]}
+        assert api_env["MONGODB_URI"]["valueFrom"]["secretKeyRef"]["name"] == "vault-pi-mongodb"
+        assert api_env["MONGODB_PASSWORD"]["valueFrom"]["secretKeyRef"]["optional"] is True
+        worker_env = pod["containers"][0]["env"]
+        assert not any(e["name"].startswith("MONGODB_") for e in worker_env)
+        assert (
+            api["template"]["spec"]["containers"][0]["readinessProbe"]["httpGet"]["path"]
+            == "/ready"
+        )
         endpoints = json.loads(api_env["SANDBOX_ENDPOINTS"]["value"])
         assert endpoints == {
             f"demo-pi-workers-{i}": f"http://demo-pi-workers-{i}.demo-pi-workers.agents.svc:8080"

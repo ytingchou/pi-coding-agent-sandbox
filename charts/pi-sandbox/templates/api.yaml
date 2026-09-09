@@ -46,12 +46,39 @@ spec:
             failureThreshold: 30
             periodSeconds: 5
           readinessProbe:
-            httpGet: {path: /health, port: http}
+            httpGet: {path: /ready, port: http}
             periodSeconds: 10
           livenessProbe:
             httpGet: {path: /health, port: http}
             periodSeconds: 20
           env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.existingSecret }}
+                  key: {{ .Values.mongodb.uriKey }}
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.existingSecret }}
+                  key: {{ .Values.mongodb.usernameKey }}
+                  optional: true
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.existingSecret }}
+                  key: {{ .Values.mongodb.passwordKey }}
+                  optional: true
+            - name: MONGODB_DATABASE
+              value: {{ .Values.mongodb.database | quote }}
+            - name: MONGODB_AUTH_SOURCE
+              value: {{ .Values.mongodb.authSource | quote }}
+            - name: MONGODB_TIMEOUT_MS
+              value: {{ .Values.mongodb.timeoutMS | quote }}
+            {{- if .Values.mongodb.tlsCASecret }}
+            - name: MONGODB_TLS_CA_FILE
+              value: /etc/mongodb-ca/ca.crt
+            {{- end }}
             - name: API_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -91,6 +118,16 @@ spec:
               value: {{ .Values.lifecycle.ephemeralIdleTtlSeconds | quote }}
           volumeMounts:
             - {name: state, mountPath: /state}
+            {{- if .Values.mongodb.tlsCASecret }}
+            - {name: mongodb-ca, mountPath: /etc/mongodb-ca, readOnly: true}
+            {{- end }}
+      {{- if .Values.mongodb.tlsCASecret }}
+      volumes:
+        - name: mongodb-ca
+          secret:
+            secretName: {{ .Values.mongodb.tlsCASecret }}
+            items: [{key: ca.crt, path: ca.crt}]
+      {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: state

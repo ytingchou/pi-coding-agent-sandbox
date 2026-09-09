@@ -16,8 +16,16 @@ sandbox:
 networkPolicy:
   # Replace these documentation IPs with actual gateway destination IPs.
   apiEgress:
+    # Replace with ALL external MongoDB replica-set member destinations.
+    - to: [{ipBlock: {cidr: 192.0.2.20/32}}]
+      ports: [{protocol: TCP, port: 27017}]
     - to: [{ipBlock: {cidr: 192.0.2.10/32}}]
       ports: [{protocol: TCP, port: 443}]
   sandboxEgress:
     - to: [{ipBlock: {cidr: 192.0.2.11/32}}]
       ports: [{protocol: TCP, port: 443}]
+
+mongodb:
+  existingSecret: vault-pi-mongodb
+  database: pi_agents
+  authSource: admin

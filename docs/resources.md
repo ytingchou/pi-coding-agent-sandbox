@@ -122,6 +122,6 @@ docker compose run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 \
 
 新測試以真正的 pi CLI 驗證 native discovery、extension 載入、自訂工具清單、無模型指令回傳、本機 package install/remove、Python helper 的執行、不同 session 的資源隔離，以及 reload／worker 重建後的持久化。遠端 npm/git 安裝需網路，未包含在離線測試中。
 
-本次驗證結果：API／Agents SDK 測試 6 個通過，worker／RPC／隔離／資源測試 12 個通過；`demo_resources.py` 在完整 Compose 中執行成功並清理自己的 sessions。`--live` 模型流程未執行。
+驗證結果：API／Agents SDK 測試 6 個通過，worker／RPC／隔離／資源測試 12 個通過；完整 Compose 的離線與 `--live` 流程均已執行。真實模型成功使用 `python-stats` skill、`session_info` extension tool 與 package 的 `python_stats` tool。整體 demo 的執行證據與用量限制詳見 [完整驗證報告](../reports/full-sandbox-demo.json)。
 
 原生 API 格式參考：[Pi skills](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md)、[Pi extensions](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/extensions.md)、[Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md)。實作與容器測試使用固定的 pi `0.85.1`。

@@ -86,6 +86,8 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 `sandbox_results` 是程式直接收集的 pi 工具事件，方便核對外層回答。為限制 API 大小，每次最多回傳 32 筆工具結果、每筆 8,000 字元，pi 回答最多 32,000 字元；完整 pi transcript 留在 session volume。外層 instructions 要求 pi 寫檔並執行；這是模型任務要求，實際是否執行應以 `tool_results` 為準，不能只以模型自然語言宣稱為準。
 
+`/run` 另回傳 `usage`，包含外層 Agents SDK 的 requests、input_tokens、output_tokens、total_tokens；不包含 pi 模型用量。工具的 session ID schema 會限定為此次允許的 ID，避免模型沿用歷史 session。一般委派會明確要求立即寫檔與執行；Python demo 會檢查成功的 bash 工具紀錄，沒有執行證據就不算通過。
+
 | 操作 | Endpoint |
 |---|---|
 | Worker 健康狀態 | `GET /sandboxes` |
@@ -151,7 +153,7 @@ docker compose exec api python scripts/smoke.py
 
 隔離測試會在臨時目錄中建立兩個真 pi sessions：A 寫 Python／執行並透過 pip 安裝本機 wheel，B 驗證看不到 A 的檔案、套件、tmp 與 supervisor；測試程序／權限限制、不同 session 並行，以及 worker 物件重建後資料延續與刪除。測試透過 pi 的 RPC `bash` 指令執行，**不會假裝是模型生成程式碼**。真實雙層模型端到端驗證請用填好 API key 的 `scripts/demo.py`。
 
-已於 Docker Desktop Linux/amd64 驗證：18 個測試通過，skills/extensions/packages 的完整 Compose 離線 demo 通過；原有 Compose smoke test 也已通過。三個服務 healthcheck 正常。沒有執行需要真實 API key 的模型 demo。
+已於 Docker Desktop Linux/amd64 驗證：18 個測試通過，skills/extensions/packages 的完整 Compose 離線 demo 通過；原有 Compose smoke test 也已通過。真實 API 的完整 basic 與 resources live 流程也已完成，過程中修正 session 選擇與缺少執行證據的問題並補跑相關步驟。已記錄 54,715 tokens（含補跑及快取輸入）；最初一次被拒絕的外層工具呼叫未保存模型 usage，因此實際總消耗高於此數。詳見 [完整驗證報告](reports/full-sandbox-demo.json)。
 
 停止服務並保留狀態：`docker compose down`。清除所有 sample volumes 與 sessions：`docker compose down -v`（會刪除資料）。
 

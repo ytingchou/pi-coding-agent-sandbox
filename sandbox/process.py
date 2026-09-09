@@ -26,9 +26,7 @@ async def run_isolated(root, uid, argv, timeout=120):
             await process.wait()
             await reader
         text = output.decode(errors="replace")
-        key = os.getenv("OPENAI_API_KEY")
-        if key:
-            text = text.replace(key, "[redacted]")
+        text = isolation.redact(text)
         return {"exit_code": process.returncode, "output": text}
     finally:
         # Also kill package install hooks that detached but remain in this PID namespace.

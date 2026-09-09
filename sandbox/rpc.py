@@ -41,9 +41,7 @@ class PiRPC:
         except Exception as exc:
             await self.close()
             detail = "".join(self.stderr)[-2000:]
-            key = os.getenv("OPENAI_API_KEY")
-            if key:
-                detail = detail.replace(key, "[redacted]")
+            detail = isolation.redact(detail)
             raise PiError(f"Pi startup failed: {detail}") from exc
         except BaseException:
             await self.close()

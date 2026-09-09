@@ -1,11 +1,11 @@
 import json
-import os
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 
 from agents import Agent, ModelSettings, RunContextWrapper, Runner, SQLiteSession, function_tool
 
 from orchestrator.session_manager import SessionManager
+from orchestrator.model_config import configured_model
 
 
 @dataclass
@@ -48,9 +48,12 @@ async def run_agent(manager, agent_id, prompt, session_ids=None, model=None, his
     schema = deepcopy(run_python_in_sandbox.params_json_schema)
     schema["properties"]["session_id"]["enum"] = sorted(selected)
     scoped_tool = replace(run_python_in_sandbox, params_json_schema=schema)
+    client = None
+    if model is None:
+        model, client = configured_model()
     agent = Agent[AgentContext](
         name="Python sandbox coordinator",
-        model=model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        model=model,
         instructions=(
             "Delegate the user's computation to pi using run_python_in_sandbox. "
             "Pi must write a Python file and execute it. Return results grounded in tool output, "
@@ -74,3 +77,5 @@ async def run_agent(manager, agent_id, prompt, session_ids=None, model=None, his
                           "output_tokens": usage.output_tokens, "total_tokens": usage.total_tokens}}
     finally:
         history.close()
+        if client is not None:
+            await client.close()

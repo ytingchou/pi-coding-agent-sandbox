@@ -22,6 +22,12 @@ x-worker: &worker
   environment: &worker-env
     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     PI_MODEL: ${PI_MODEL:-gpt-4.1-mini}
+    PI_BASE_URL: ${PI_BASE_URL:-}
+    PI_API_KEY: ${PI_API_KEY:-}
+    PI_API_MODE: ${PI_API_MODE:-}
+    PI_CONTEXT_WINDOW: ${PI_CONTEXT_WINDOW:-128000}
+    PI_MAX_TOKENS: ${PI_MAX_TOKENS:-4096}
+    PI_MODEL_COMPAT: ${PI_MODEL_COMPAT:-}
     SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
     PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
     MAX_SESSIONS: ${MAX_SESSIONS:-8}
@@ -43,6 +49,8 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_API_MODE: ${OPENAI_API_MODE:-}
       API_TOKEN: ${API_TOKEN:-local-demo-change-me}
       SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
       SANDBOX_ENDPOINTS: '{"sandbox-1":"http://sandbox-1:8080","sandbox-2":"http://sandbox-2:8080"}'

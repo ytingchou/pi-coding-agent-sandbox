@@ -54,7 +54,11 @@ def environment() -> dict[str, str]:
         "GIT_TERMINAL_PROMPT": "0",
         "PI_CODING_AGENT_DIR": "/workspace/home/.pi/agent",
         "VIRTUAL_ENV": "/workspace/venv", "PYTHONNOUSERSITE": "1",
-        "LANG": "C.UTF-8", "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", ""),
+        "LANG": "C.UTF-8",
+        "OPENAI_API_KEY": os.getenv("PI_API_KEY") or os.getenv("OPENAI_API_KEY", ""),
+        "PI_API_KEY": os.getenv("PI_API_KEY") or os.getenv("OPENAI_API_KEY", ""),
+        **{name: os.getenv(name, "") for name in (
+            "PI_BASE_URL", "PI_MODEL", "PI_API_MODE", "PI_CONTEXT_WINDOW", "PI_MAX_TOKENS", "PI_MODEL_COMPAT")},
     }
 
 
@@ -64,6 +68,14 @@ def limits() -> None:
     resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
     resource.setrlimit(resource.RLIMIT_NPROC, (128, 128))
     resource.setrlimit(resource.RLIMIT_FSIZE, (128 * 1024 * 1024,) * 2)
+
+
+def redact(text):
+    for name in ("OPENAI_API_KEY", "PI_API_KEY"):
+        key = os.getenv(name)
+        if key:
+            text = text.replace(key, "[redacted]")
+    return text
 
 
 # Run venv bootstrap inside isolation as the session UID, never as supervisor root.
@@ -79,7 +91,8 @@ if ! /workspace/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (
 fi
 /usr/local/bin/python3.12 /opt/pi-resources/bootstrap.py
 /workspace/venv/bin/python /opt/python-runtime/inventory.py > /workspace/state/python-packages.json
-exec pi --mode rpc --provider openai --model "$1" \
+pi_provider=$(/usr/local/bin/python3.12 /opt/pi-resources/configure_model.py)
+exec pi --mode rpc --provider "$pi_provider" --model "$1" \
     --session /workspace/state/session.jsonl \
     --append-system-prompt "$(cat /opt/python-runtime/SYSTEM.md)"
 """

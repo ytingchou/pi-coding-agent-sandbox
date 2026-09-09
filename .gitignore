@@ -10,3 +10,6 @@ node_modules/
 artifacts/
 
 .ruff_cache/
+
+# macOS Finder metadata
+.DS_Store

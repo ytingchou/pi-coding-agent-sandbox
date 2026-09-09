@@ -176,17 +176,22 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 目前 API 與每個 worker 必須各維持 **一個 Uvicorn process**。這是刻意的範例限制：asyncio locks 與 RPC connections 是程序內狀態。要擴充 API 副本，需以 PostgreSQL/Redis lease 分散式鎖、worker discovery、容量預留與 job 狀態取代本機鎖／SQLite；既有 Transport 邊界可沿用。閒置 session 目前需手動 DELETE，尚未實作 TTL、Agent 刪除、artifact 下載與遷移。
 
+## 開發環境與程式品質
+
+使用 Python 3.12 與 uv 0.10.x。`uv sync --locked` 建立 `.venv`；`make format` 使用 Ruff 修正與格式化，`make check` 執行 Ruff、yamllint、Hadolint 與主機測試。Docker／sandbox 變更再執行 `make test-container`，不需模型 key。
+
+已提供 VS Code settings／推薦 extensions／Tasks、`.editorconfig`、可選 pre-commit hooks 與 GitHub Actions。依賴分組、工具預設值與完整操作見 [開發手冊](docs/development.md)；AI coding agent 的專案規範見 [AGENTS.md](AGENTS.md)。
+
 ## 驗證
 
-可自行重跑真實模型驗證、匯出 session tracing／程式檔並計算兩層 token 用量：見 [Session 驗證與 tracing 操作手冊](docs/session-verification.md)。主機安裝 Python 3.10+ 後執行 `python3 scripts/verify_sessions.py verify`；報告預設保存在 Git 忽略的 `artifacts/`。
+可自行重跑真實模型驗證、匯出 session tracing／程式檔並計算兩層 token 用量：見 [Session 驗證與 tracing 操作手冊](docs/session-verification.md)。主機執行 `uv sync --locked` 後，使用 `uv run --locked python scripts/verify_sessions.py verify`；報告預設保存在 Git 忽略的 `artifacts/`。
 
 ```bash
-docker compose build
-# 真正的 Agents SDK tool loop（以 scripted model 避免使用 API）、路由與復原測試
-docker compose run --rm --no-deps api python -m pytest -p no:cacheprovider tests/test_agent.py tests/test_manager.py -q
-# 真正的 pi RPC、Python 執行與 Linux 隔離測試，不需 API key
-docker compose run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 \
-  /opt/server/bin/python -m pytest -p no:cacheprovider tests/test_rpc.py tests/test_worker.py tests/test_isolation.py tests/test_resources.py -q
+uv sync --locked
+# Ruff、YAML、Dockerfile lint 與主機測試
+make check
+# 無外網 Linux 容器：真正的 Pi RPC、Python 執行、隔離與模擬模型 gateway
+make test-container
 # 完整 Compose control-plane：兩個 worker、三個 session、重連、權限與刪除
 docker compose exec api python scripts/smoke.py
 ```
@@ -204,4 +209,4 @@ docker compose exec api python scripts/smoke.py
 - [Pi 官方 RPC protocol](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/rpc.md)
 - [Bubblewrap](https://github.com/containers/bubblewrap)
 
-使用 `openai-agents==0.22.1` 與目前維護中的 `@earendil-works/pi-coding-agent==0.85.1`；pi 的 transitive dependencies 由 `sandbox/package-lock.json` 固定。Python 直接依賴固定版本，transitive dependencies 與 base-image tags 未全數鎖定 digest。應用 Python 套件的實際版本另於 image build 產生 manifest。
+使用 `openai-agents==0.22.1` 與目前維護中的 `@earendil-works/pi-coding-agent==0.85.1`；pi 的 transitive dependencies 由 `sandbox/package-lock.json` 固定。Python 直接與傳遞依賴由 `pyproject.toml`／`uv.lock` 管理並鎖定；base-image tags 尚未固定 digest。應用 Python 套件的實際版本另於 image build 產生 manifest。

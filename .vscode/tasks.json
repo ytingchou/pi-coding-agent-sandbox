@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "uv: sync", "type": "process", "command": "uv", "args": ["sync", "--locked"], "problemMatcher": []},
+    {"label": "Quality: lint all", "type": "process", "command": "make", "args": ["lint"], "problemMatcher": []},
+    {"label": "Quality: format Python", "type": "process", "command": "make", "args": ["format"], "problemMatcher": []},
+    {"label": "Tests: host", "type": "process", "command": "make", "args": ["test"], "group": "test", "problemMatcher": []},
+    {"label": "Tests: offline sandbox", "type": "process", "command": "make", "args": ["test-container"], "group": "test", "problemMatcher": []}
+  ]
+}

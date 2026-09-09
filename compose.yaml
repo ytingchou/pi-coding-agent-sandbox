@@ -30,6 +30,8 @@ x-worker: &worker
     PI_MODEL_COMPAT: ${PI_MODEL_COMPAT:-}
     SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
     PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
+    PI_IDLE_DISCONNECT_SECONDS: ${PI_IDLE_DISCONNECT_SECONDS:-300}
+    SESSION_CLEANUP_INTERVAL_SECONDS: ${SESSION_CLEANUP_INTERVAL_SECONDS:-60}
     MAX_SESSIONS: ${MAX_SESSIONS:-8}
   healthcheck:
     test:
@@ -59,6 +61,8 @@ services:
       SANDBOX_TOKEN: ${SANDBOX_TOKEN:-worker-demo-change-me}
       SANDBOX_ENDPOINTS: '{"sandbox-1":"http://sandbox-1:8080","sandbox-2":"http://sandbox-2:8080"}'
       PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
+      SESSION_IDLE_TTL_SECONDS: ${SESSION_IDLE_TTL_SECONDS:-3600}
+      SESSION_CLEANUP_INTERVAL_SECONDS: ${SESSION_CLEANUP_INTERVAL_SECONDS:-60}
       OPENAI_AGENTS_DISABLE_TRACING: "1"
     volumes: [agent-state:/state]
     depends_on:

@@ -15,8 +15,11 @@ from orchestrator.session_manager import SessionManager
 @asynccontextmanager
 async def lifespan(app):
     app.state.manager = SessionManager()
-    yield
-    await app.state.manager.close()
+    app.state.manager.start_cleanup()
+    try:
+        yield
+    finally:
+        await app.state.manager.close()
 
 
 app = FastAPI(title="OpenAI Agents SDK + Pi sandbox sample", lifespan=lifespan)
@@ -29,7 +32,12 @@ def authorize(authorization: str = Header(default="")):
         raise HTTPException(401, "Invalid API token")
 
 
-class SessionRequest(BaseModel):
+class RetentionRequest(BaseModel):
+    retention: Literal["managed", "ephemeral"] = "managed"
+    idle_ttl_seconds: int | None = Field(default=None, ge=1)
+
+
+class SessionRequest(RetentionRequest):
     sandbox_id: str | None = None
 
 
@@ -71,7 +79,9 @@ async def list_sessions(agent_id: UUID):
 async def create_session(agent_id: UUID, body: SessionRequest):
     manager = app.state.manager
     async with manager.lock(str(agent_id)):
-        return await manager.allocate(str(agent_id), body.sandbox_id)
+        return await manager.allocate(
+            str(agent_id), body.sandbox_id, body.retention, body.idle_ttl_seconds
+        )
 
 
 @app.post("/agents/{agent_id}/sessions/{session_id}/connect", dependencies=[Depends(authorize)])
@@ -157,3 +167,22 @@ async def run(agent_id: UUID, body: RunRequest):
                     else None,
                 },
             ) from exc
+
+
+@app.patch("/agents/{agent_id}/sessions/{session_id}/retention", dependencies=[Depends(authorize)])
+async def retention(agent_id: UUID, session_id: UUID, body: RetentionRequest):
+    manager = app.state.manager
+    async with manager.lock(str(agent_id)):
+        return manager.retention(
+            str(agent_id), str(session_id), body.retention, body.idle_ttl_seconds
+        )
+
+
+@app.get("/sessions/cleanup", dependencies=[Depends(authorize)])
+async def cleanup_status():
+    return app.state.manager.cleanup_status
+
+
+@app.post("/sessions/cleanup", dependencies=[Depends(authorize)])
+async def cleanup(dry_run: bool = True):
+    return await app.state.manager.cleanup_once(dry_run=dry_run)

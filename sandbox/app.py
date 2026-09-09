@@ -4,10 +4,12 @@ import logging
 import os
 import shutil
 import sqlite3
-from contextlib import asynccontextmanager
+import time
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
+from weakref import WeakValueDictionary
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field, model_validator
@@ -20,12 +22,24 @@ from sandbox.rpc import PiError, PiRPC
 class Worker:
     def __init__(self, state=Path("/state"), root=Path("/sessions")):
         self.root = root
+        root.mkdir(parents=True, exist_ok=True, mode=0o711)
         state.mkdir(parents=True, exist_ok=True)
+        state.chmod(0o700)
         self.db = sqlite3.connect(state / "worker.sqlite")
         self.db.execute(
             "CREATE TABLE IF NOT EXISTS sessions (slot INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL)"
         )
-        self.locks = {}
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(sessions)")}
+        with self.db:
+            if "last_activity" not in columns:
+                self.db.execute(
+                    "ALTER TABLE sessions ADD COLUMN last_activity REAL NOT NULL DEFAULT 0"
+                )
+            self.db.execute(
+                "UPDATE sessions SET last_activity=? WHERE last_activity=0", (time.time(),)
+            )
+        self.locks = WeakValueDictionary()
+        self.cleanup_task = None
         self.connections = {}
         self.allocation_lock = asyncio.Lock()
 
@@ -56,16 +70,21 @@ class Worker:
             await rpc.close()
 
     async def create(self, session_id):
-        async with self.lock(session_id), self.allocation_lock:
+        async with self.activity(session_id), self.allocation_lock:
             row = self.db.execute("SELECT slot FROM sessions WHERE id=?", (session_id,)).fetchone()
             if not row:
                 count = self.db.execute("SELECT count(*) FROM sessions").fetchone()[0]
                 if count >= int(os.getenv("MAX_SESSIONS", "8")):
                     raise HTTPException(409, "Sandbox session capacity reached")
                 with self.db:
-                    slot = self.db.execute(
-                        "INSERT INTO sessions(id) VALUES (?)", (session_id,)
-                    ).lastrowid
+                    used = {row[0] for row in self.db.execute("SELECT slot FROM sessions")}
+                    slot = next((i for i in range(1, 55536) if i not in used), None)
+                    if slot is None:
+                        raise HTTPException(409, "Sandbox UID capacity reached")
+                    self.db.execute(
+                        "INSERT INTO sessions(slot, id, last_activity) VALUES (?, ?, ?)",
+                        (slot, session_id, time.time()),
+                    )
                 try:
                     provision(self.root / session_id, 10000 + slot)
                 except BaseException:
@@ -84,7 +103,7 @@ class Worker:
             return {"session_id": session_id, "sandbox_id": os.getenv("SANDBOX_ID", "sandbox")}
 
     async def prompt(self, session_id, prompt):
-        async with self.lock(session_id):
+        async with self.activity(session_id):
             self.uid(session_id)
             try:
                 rpc = await self.connection(session_id)
@@ -96,8 +115,16 @@ class Worker:
                 await self.disconnect(session_id)
                 raise HTTPException(502, str(exc)) from exc
 
-    async def delete(self, session_id):
-        async with self.lock(session_id):
+    async def delete(self, session_id, idle_before=None):
+        lock = self.lock(session_id)
+        if idle_before is not None and lock.locked():
+            raise HTTPException(409, "Session is active")
+        async with lock:
+            row = self.db.execute(
+                "SELECT last_activity FROM sessions WHERE id=?", (session_id,)
+            ).fetchone()
+            if idle_before is not None and row and row[0] > idle_before:
+                raise HTTPException(409, "Session was recently active")
             await self.disconnect(session_id)
             directory = self.root / session_id
             if directory.exists():
@@ -106,7 +133,7 @@ class Worker:
                 self.db.execute("DELETE FROM sessions WHERE id=?", (session_id,))
 
     async def resources(self, session_id, reload=False):
-        async with self.lock(session_id):
+        async with self.activity(session_id):
             uid = self.uid(session_id)
             if reload:
                 await self.disconnect(session_id)
@@ -131,7 +158,7 @@ class Worker:
                 raise HTTPException(502, str(exc)) from exc
 
     async def package(self, session_id, request):
-        async with self.lock(session_id):
+        async with self.activity(session_id):
             uid = self.uid(session_id)
             # Avoid mutating settings while another pi process is reading/writing them.
             await self.disconnect(session_id)
@@ -157,7 +184,54 @@ class Worker:
                 await self.disconnect(session_id)
                 raise HTTPException(502, f"Package changed but pi reload failed: {exc}") from exc
 
+    @asynccontextmanager
+    async def activity(self, session_id):
+        async with self.lock(session_id):
+            try:
+                yield
+            finally:
+                with self.db:
+                    self.db.execute(
+                        "UPDATE sessions SET last_activity=? WHERE id=?", (time.time(), session_id)
+                    )
+
+    async def suspend_idle(self, now=None):
+        ttl = int(os.getenv("PI_IDLE_DISCONNECT_SECONDS", "300"))
+        if ttl <= 0:
+            return []
+        cutoff = (time.time() if now is None else now) - ttl
+        suspended = []
+        for session_id in list(self.connections):
+            lock = self.lock(session_id)
+            if lock.locked():
+                continue
+            async with lock:
+                row = self.db.execute(
+                    "SELECT last_activity FROM sessions WHERE id=?", (session_id,)
+                ).fetchone()
+                if row and row[0] <= cutoff:
+                    await self.disconnect(session_id)
+                    suspended.append(session_id)
+        return suspended
+
+    def start_cleanup(self):
+        interval = int(os.getenv("SESSION_CLEANUP_INTERVAL_SECONDS", "60"))
+        if interval > 0:
+            self.cleanup_task = asyncio.create_task(self.cleanup_loop(interval))
+
+    async def cleanup_loop(self, interval):
+        while True:
+            await asyncio.sleep(interval)
+            try:
+                await self.suspend_idle()
+            except Exception:
+                logging.getLogger(__name__).exception("Idle Pi suspension failed")
+
     async def close(self):
+        if self.cleanup_task:
+            self.cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self.cleanup_task
         await asyncio.gather(
             *(rpc.close() for rpc in self.connections.values()), return_exceptions=True
         )
@@ -167,8 +241,11 @@ class Worker:
 @asynccontextmanager
 async def lifespan(app):
     app.state.worker = Worker()
-    yield
-    await app.state.worker.close()
+    app.state.worker.start_cleanup()
+    try:
+        yield
+    finally:
+        await app.state.worker.close()
 
 
 app = FastAPI(title="Pi sandbox worker", lifespan=lifespan)
@@ -246,6 +323,6 @@ async def package(session_id: UUID, body: PackageRequest):
 
 
 @app.delete("/sessions/{session_id}", dependencies=[Depends(authorize)])
-async def delete(session_id: UUID):
-    await app.state.worker.delete(str(session_id))
+async def delete(session_id: UUID, idle_before: float | None = None):
+    await app.state.worker.delete(str(session_id), idle_before=idle_before)
     return {"deleted": str(session_id)}

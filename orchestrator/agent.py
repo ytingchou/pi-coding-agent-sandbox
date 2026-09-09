@@ -4,8 +4,8 @@ from dataclasses import dataclass, field, replace
 
 from agents import Agent, ModelSettings, RunContextWrapper, Runner, SQLiteSession, function_tool
 
-from orchestrator.session_manager import SessionManager
 from orchestrator.model_config import configured_model
+from orchestrator.session_manager import SessionManager
 
 
 @dataclass
@@ -17,7 +17,9 @@ class AgentContext:
 
 
 @function_tool(failure_error_function=None)
-async def run_python_in_sandbox(ctx: RunContextWrapper[AgentContext], session_id: str, prompt: str) -> str:
+async def run_python_in_sandbox(
+    ctx: RunContextWrapper[AgentContext], session_id: str, prompt: str
+) -> str:
     """Ask the selected pi coding agent to write and run Python in its isolated environment.
 
     Args:
@@ -38,7 +40,14 @@ async def run_python_in_sandbox(ctx: RunContextWrapper[AgentContext], session_id
     return json.dumps(evidence, ensure_ascii=False)
 
 
-async def run_agent(manager, agent_id, prompt, session_ids=None, model=None, history_path="/state/conversations.sqlite"):
+async def run_agent(
+    manager,
+    agent_id,
+    prompt,
+    session_ids=None,
+    model=None,
+    history_path="/state/conversations.sqlite",
+):
     bindings = manager.sessions(agent_id)
     available = {item["id"] for item in bindings if item["status"] == "ready"}
     selected = set(session_ids) if session_ids is not None else available
@@ -72,9 +81,17 @@ async def run_agent(manager, agent_id, prompt, session_ids=None, model=None, his
     try:
         result = await Runner.run(agent, prompt, context=context, session=history, max_turns=12)
         usage = result.context_wrapper.usage
-        return {"agent_id": agent_id, "output": result.final_output, "sandbox_results": context.evidence,
-                "usage": {"requests": usage.requests, "input_tokens": usage.input_tokens,
-                          "output_tokens": usage.output_tokens, "total_tokens": usage.total_tokens}}
+        return {
+            "agent_id": agent_id,
+            "output": result.final_output,
+            "sandbox_results": context.evidence,
+            "usage": {
+                "requests": usage.requests,
+                "input_tokens": usage.input_tokens,
+                "output_tokens": usage.output_tokens,
+                "total_tokens": usage.total_tokens,
+            },
+        }
     finally:
         history.close()
         if client is not None:

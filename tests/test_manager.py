@@ -1,4 +1,5 @@
 import asyncio
+
 import httpx
 import pytest
 from fastapi import HTTPException
@@ -9,11 +10,15 @@ from orchestrator.session_manager import SessionManager
 @pytest.mark.asyncio
 async def test_routing_ownership_persistence_and_cleanup(tmp_path):
     calls = []
+
     async def transport(request):
         calls.append((request.method, str(request.url)))
         return httpx.Response(200, json={"output": "42"})
+
     endpoints = {"one": "http://one", "two": "http://two"}
-    manager = SessionManager(tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport)))
+    manager = SessionManager(
+        tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+    )
     agent = manager.create_agent()["agent_id"]
     other = manager.create_agent()["agent_id"]
     a = await manager.allocate(agent)
@@ -24,7 +29,9 @@ async def test_routing_ownership_persistence_and_cleanup(tmp_path):
         await manager.prompt(other, a["id"], "steal files")
     assert exc.value.status_code == 404
     await manager.close()
-    manager = SessionManager(tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport)))
+    manager = SessionManager(
+        tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+    )
     assert len(manager.sessions(agent)) == 3
     assert (await manager.prompt(agent, a["id"], "continue"))["output"] == "42"
     assert calls[-1][1].startswith("http://one/")
@@ -36,11 +43,15 @@ async def test_routing_ownership_persistence_and_cleanup(tmp_path):
 @pytest.mark.asyncio
 async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path):
     calls = 0
+
     async def transport(request):
         nonlocal calls
         calls += 1
         raise httpx.ReadTimeout("timeout", request=request)
-    manager = SessionManager(tmp_path, {"one": "http://one"}, httpx.AsyncClient(transport=httpx.MockTransport(transport)))
+
+    manager = SessionManager(
+        tmp_path, {"one": "http://one"}, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+    )
     agent = manager.create_agent()["agent_id"]
     with pytest.raises(HTTPException) as exc:
         await manager.allocate(agent, "one")
@@ -58,9 +69,11 @@ async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path):
 async def test_agent_lock_serializes_same_agent_but_not_others(tmp_path):
     manager = SessionManager(tmp_path, {"one": "http://one"})
     entered = asyncio.Event()
+
     async def waiting():
         async with manager.lock("a"):
             entered.set()
+
     async with manager.lock("a"):
         task = asyncio.create_task(waiting())
         async with manager.lock("b"):
@@ -74,15 +87,26 @@ async def test_agent_lock_serializes_same_agent_but_not_others(tmp_path):
 @pytest.mark.asyncio
 async def test_resource_operations_enforce_owner_and_sticky_route(tmp_path):
     calls = []
+
     async def transport(request):
         calls.append(request)
         return httpx.Response(200, json={"commands": []})
-    manager = SessionManager(tmp_path, {"one": "http://one", "two": "http://two"},
-        httpx.AsyncClient(transport=httpx.MockTransport(transport)))
+
+    manager = SessionManager(
+        tmp_path,
+        {"one": "http://one", "two": "http://two"},
+        httpx.AsyncClient(transport=httpx.MockTransport(transport)),
+    )
     agent = manager.create_agent()["agent_id"]
     other = manager.create_agent()["agent_id"]
     session = await manager.allocate(agent, "two")
-    await manager.resource_call(agent, session["id"], "POST", "packages", json={"action": "install", "source": "npm:example@1.0.0"})
+    await manager.resource_call(
+        agent,
+        session["id"],
+        "POST",
+        "packages",
+        json={"action": "install", "source": "npm:example@1.0.0"},
+    )
     assert str(calls[-1].url) == f"http://two/sessions/{session['id']}/packages"
     count = len(calls)
     with pytest.raises(HTTPException) as exc:

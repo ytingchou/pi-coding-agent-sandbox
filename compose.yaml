@@ -32,7 +32,11 @@ x-worker: &worker
     PROMPT_TIMEOUT: ${PROMPT_TIMEOUT:-180}
     MAX_SESSIONS: ${MAX_SESSIONS:-8}
   healthcheck:
-    test: [CMD, /opt/server/bin/python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)"]
+    test:
+      - CMD
+      - /opt/server/bin/python
+      - -c
+      - "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)"
     interval: 10s
     timeout: 5s
     retries: 5
@@ -64,7 +68,11 @@ services:
     security_opt: [no-new-privileges:true]
     networks: [agents]
     healthcheck:
-      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
       interval: 10s
       timeout: 5s
       retries: 5

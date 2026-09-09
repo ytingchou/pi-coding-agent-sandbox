@@ -1,0 +1,5 @@
+failure-threshold: warning
+# Debian security package versions vary as the base image is refreshed.
+# Python dependencies are locked separately in uv.lock; do not pin apt to stale versions.
+ignored:
+  - DL3008

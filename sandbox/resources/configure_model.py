@@ -1,4 +1,5 @@
 """Configure a reserved Pi provider from environment; never write a literal API key."""
+
 import json
 import os
 from pathlib import Path
@@ -13,8 +14,17 @@ def configure(agent_dir, env):
         return "openai"
     base_url = base_url or "https://api.openai.com/v1"
     parsed = urlsplit(base_url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise ValueError("PI_BASE_URL must be an HTTP(S) base URL without credentials, query or fragment")
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.netloc
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError(
+            "PI_BASE_URL must be an HTTP(S) base URL without credentials, query or fragment"
+        )
     mode = mode or "chat_completions"
     apis = {"chat_completions": "openai-completions", "responses": "openai-responses"}
     if mode not in apis:
@@ -30,13 +40,28 @@ def configure(agent_dir, env):
     path = agent_dir / "models.json"
     data = json.loads(path.read_text()) if path.exists() else {}
     provider = {
-        "baseUrl": base_url, "api": apis[mode], "apiKey": "$PI_API_KEY", "authHeader": True,
-        "models": [{"id": env.get("PI_MODEL") or "gpt-4.1-mini", "reasoning": False,
-                    "input": ["text"], "contextWindow": context, "maxTokens": output}],
+        "baseUrl": base_url,
+        "api": apis[mode],
+        "apiKey": "$PI_API_KEY",
+        "authHeader": True,
+        "models": [
+            {
+                "id": env.get("PI_MODEL") or "gpt-4.1-mini",
+                "reasoning": False,
+                "input": ["text"],
+                "contextWindow": context,
+                "maxTokens": output,
+            }
+        ],
     }
     if mode == "chat_completions":
-        provider["compat"] = {"supportsStore": False, "supportsDeveloperRole": False,
-                              "supportsReasoningEffort": False, "maxTokensField": "max_tokens", **compat}
+        provider["compat"] = {
+            "supportsStore": False,
+            "supportsDeveloperRole": False,
+            "supportsReasoningEffort": False,
+            "maxTokensField": "max_tokens",
+            **compat,
+        }
     elif compat:
         provider["compat"] = compat
     data.setdefault("providers", {})["sandbox-openai"] = provider

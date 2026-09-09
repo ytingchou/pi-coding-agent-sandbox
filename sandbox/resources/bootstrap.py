@@ -1,4 +1,5 @@
 """Seed examples once, as the session UID inside Bubblewrap. Never overwrite edits."""
+
 import json
 import shutil
 from pathlib import Path
@@ -7,9 +8,12 @@ from pathlib import Path
 def seed():
     # Upgrade existing 3.12 venv visibility without reinstalling or deleting packages.
     config = Path("/workspace/venv/pyvenv.cfg")
-    lines = [line for line in config.read_text().splitlines()
-             if not line.partition("=")[0].strip() == "include-system-site-packages"]
-    config.write_text("\n".join(lines + ["include-system-site-packages = true"]) + "\n")
+    lines = [
+        line
+        for line in config.read_text().splitlines()
+        if line.partition("=")[0].strip() != "include-system-site-packages"
+    ]
+    config.write_text("\n".join([*lines, "include-system-site-packages = true"]) + "\n")
     source = Path("/opt/pi-resources")
     agent_dir = Path("/workspace/home/.pi/agent")
     agent_dir.mkdir(parents=True, exist_ok=True)

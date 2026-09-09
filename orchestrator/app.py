@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from typing import Literal
 from uuid import UUID
 
+from agents.exceptions import AgentsException
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
-from agents.exceptions import AgentsException
 
 from orchestrator.agent import run_agent
 from orchestrator.session_manager import SessionManager
@@ -23,7 +23,9 @@ app = FastAPI(title="OpenAI Agents SDK + Pi sandbox sample", lifespan=lifespan)
 
 
 def authorize(authorization: str = Header(default="")):
-    if not hmac.compare_digest(authorization, "Bearer " + os.getenv("API_TOKEN", "local-demo-change-me")):
+    if not hmac.compare_digest(
+        authorization, "Bearer " + os.getenv("API_TOKEN", "local-demo-change-me")
+    ):
         raise HTTPException(401, "Invalid API token")
 
 
@@ -94,18 +96,24 @@ async def resources(agent_id: UUID, session_id: UUID):
         return await manager.resource_call(str(agent_id), str(session_id), "GET", "resources")
 
 
-@app.post("/agents/{agent_id}/sessions/{session_id}/resources/reload", dependencies=[Depends(authorize)])
+@app.post(
+    "/agents/{agent_id}/sessions/{session_id}/resources/reload", dependencies=[Depends(authorize)]
+)
 async def reload_resources(agent_id: UUID, session_id: UUID):
     manager = app.state.manager
     async with manager.lock(str(agent_id)):
-        return await manager.resource_call(str(agent_id), str(session_id), "POST", "resources/reload")
+        return await manager.resource_call(
+            str(agent_id), str(session_id), "POST", "resources/reload"
+        )
 
 
 @app.post("/agents/{agent_id}/sessions/{session_id}/packages", dependencies=[Depends(authorize)])
 async def package(agent_id: UUID, session_id: UUID, body: PackageRequest):
     manager = app.state.manager
     async with manager.lock(str(agent_id)):
-        return await manager.resource_call(str(agent_id), str(session_id), "POST", "packages", json=body.model_dump())
+        return await manager.resource_call(
+            str(agent_id), str(session_id), "POST", "packages", json=body.model_dump()
+        )
 
 
 @app.post("/agents/{agent_id}/sessions/{session_id}/pi/prompt", dependencies=[Depends(authorize)])
@@ -124,15 +132,28 @@ async def run(agent_id: UUID, body: RunRequest):
         if not os.getenv("OPENAI_API_KEY"):
             raise HTTPException(503, "Set OPENAI_API_KEY in .env to run the live demo")
         try:
-            return await run_agent(manager, str(agent_id), body.prompt,
-                                   [str(sid) for sid in body.session_ids] if body.session_ids is not None else None)
+            return await run_agent(
+                manager,
+                str(agent_id),
+                body.prompt,
+                [str(sid) for sid in body.session_ids] if body.session_ids is not None else None,
+            )
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
         except AgentsException as exc:
             details = getattr(exc, "run_data", None)
             usage = details.context_wrapper.usage if details else None
-            raise HTTPException(502, {
-                "error": type(exc).__name__,
-                "usage": {"requests": usage.requests, "input_tokens": usage.input_tokens,
-                          "output_tokens": usage.output_tokens, "total_tokens": usage.total_tokens} if usage else None,
-            }) from exc
+            raise HTTPException(
+                502,
+                {
+                    "error": type(exc).__name__,
+                    "usage": {
+                        "requests": usage.requests,
+                        "input_tokens": usage.input_tokens,
+                        "output_tokens": usage.output_tokens,
+                        "total_tokens": usage.total_tokens,
+                    }
+                    if usage
+                    else None,
+                },
+            ) from exc

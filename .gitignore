@@ -8,3 +8,5 @@ node_modules/
 
 # Local session evidence may include prompts and generated source
 artifacts/
+
+.ruff_cache/

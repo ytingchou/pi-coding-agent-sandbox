@@ -1,18 +1,22 @@
 """Run under network_mode:none to prove build-time libraries work in real Pi sessions."""
+
 import json
 import os
-from pathlib import Path
 import shlex
 import uuid
+from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.skipif(os.getenv("RUN_ISOLATION_TESTS") != "1", reason="Requires sandbox image")
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_ISOLATION_TESTS") != "1", reason="Requires sandbox image"
+)
 
 
 @pytest.mark.asyncio
 async def test_image_packages_inventory_and_read_only_sharing(tmp_path):
     from sandbox.app import Worker
+
     root = tmp_path / "sessions"
     root.mkdir(mode=0o711)
     for parent in [tmp_path, *tmp_path.parents]:
@@ -27,7 +31,7 @@ async def test_image_packages_inventory_and_read_only_sharing(tmp_path):
             raise AssertionError(result["output"])
         return result["output"]
 
-    check = '''import json, os, sys
+    check = """import json, os, sys
 from pathlib import Path
 from importlib import metadata
 import numpy as np
@@ -68,17 +72,31 @@ for target in [Path(np.__file__), Path('/opt/python-runtime/packages.json')]:
  else:
   raise AssertionError('Image package and manifest must be read-only')
 print(json.dumps({'sum_squares':55,'numpy':np.__version__,'rich':metadata.version('rich')}))
-'''
+"""
     try:
-        for sid in (a,b):
+        for sid in (a, b):
             await worker.create(sid)
             # Write then execute actual Python, with no pip/uv install or model calls.
-            await bash(sid, "python -c " + shlex.quote("from pathlib import Path; Path('preinstalled_demo.py').write_text(" + repr(check) + ")"))
+            await bash(
+                sid,
+                "python -c "
+                + shlex.quote(
+                    "from pathlib import Path; Path('preinstalled_demo.py').write_text("
+                    + repr(check)
+                    + ")"
+                ),
+            )
             result = json.loads(await bash(sid, "python preinstalled_demo.py"))
-            assert result['sum_squares'] == 55
+            assert result["sum_squares"] == 55
         # Old 3.12 venvs gain base-package visibility when reconnected, with files intact.
-        await bash(a, "python -c " + shlex.quote("from pathlib import Path; p=Path('/workspace/venv/pyvenv.cfg'); p.write_text(p.read_text().replace('include-system-site-packages = true','include-system-site-packages = false'))"))
+        await bash(
+            a,
+            "python -c "
+            + shlex.quote(
+                "from pathlib import Path; p=Path('/workspace/venv/pyvenv.cfg'); p.write_text(p.read_text().replace('include-system-site-packages = true','include-system-site-packages = false'))"
+            ),
+        )
         await worker.disconnect(a)
-        assert json.loads(await bash(a, "python preinstalled_demo.py"))['sum_squares'] == 55
+        assert json.loads(await bash(a, "python preinstalled_demo.py"))["sum_squares"] == 55
     finally:
         await worker.close()

@@ -13,8 +13,8 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
 from sandbox.isolation import provision
-from sandbox.rpc import PiError, PiRPC
 from sandbox.process import run_isolated
+from sandbox.rpc import PiError, PiRPC
 
 
 class Worker:
@@ -22,7 +22,9 @@ class Worker:
         self.root = root
         state.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(state / "worker.sqlite")
-        self.db.execute("CREATE TABLE IF NOT EXISTS sessions (slot INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL)")
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS sessions (slot INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL)"
+        )
         self.locks = {}
         self.connections = {}
         self.allocation_lock = asyncio.Lock()
@@ -61,7 +63,9 @@ class Worker:
                 if count >= int(os.getenv("MAX_SESSIONS", "8")):
                     raise HTTPException(409, "Sandbox session capacity reached")
                 with self.db:
-                    slot = self.db.execute("INSERT INTO sessions(id) VALUES (?)", (session_id,)).lastrowid
+                    slot = self.db.execute(
+                        "INSERT INTO sessions(id) VALUES (?)", (session_id,)
+                    ).lastrowid
                 try:
                     provision(self.root / session_id, 10000 + slot)
                 except BaseException:
@@ -74,7 +78,9 @@ class Worker:
                 await self.connection(session_id)
             except Exception as exc:
                 logging.getLogger(__name__).error("Session %s startup failed: %s", session_id, exc)
-                raise HTTPException(503, "Pi startup failed; check namespace support and image configuration") from exc
+                raise HTTPException(
+                    503, "Pi startup failed; check namespace support and image configuration"
+                ) from exc
             return {"session_id": session_id, "sandbox_id": os.getenv("SANDBOX_ID", "sandbox")}
 
     async def prompt(self, session_id, prompt):
@@ -107,10 +113,16 @@ class Worker:
             try:
                 rpc = await self.connection(session_id)
                 commands = await rpc.request("get_commands")
-                packages = await run_isolated(self.root / session_id, uid, ["pi", "list"], timeout=30)
+                packages = await run_isolated(
+                    self.root / session_id, uid, ["pi", "list"], timeout=30
+                )
                 if packages["exit_code"]:
                     raise HTTPException(502, packages)
-                return {"session_id": session_id, "commands": commands["commands"], "packages": packages["output"]}
+                return {
+                    "session_id": session_id,
+                    "commands": commands["commands"],
+                    "packages": packages["output"],
+                }
             except (TimeoutError, asyncio.CancelledError):
                 await self.disconnect(session_id)
                 raise
@@ -124,13 +136,20 @@ class Worker:
             # Avoid mutating settings while another pi process is reading/writing them.
             await self.disconnect(session_id)
             try:
-                result = await run_isolated(self.root / session_id, uid, ["pi", request.action, request.source])
+                result = await run_isolated(
+                    self.root / session_id, uid, ["pi", request.action, request.source]
+                )
                 if result["exit_code"]:
                     raise HTTPException(400, result)
                 rpc = await self.connection(session_id)
                 commands = await rpc.request("get_commands")
-                return {**result, "action": request.action, "source": request.source,
-                        "reloaded": True, "commands": commands["commands"]}
+                return {
+                    **result,
+                    "action": request.action,
+                    "source": request.source,
+                    "reloaded": True,
+                    "commands": commands["commands"],
+                }
             except (TimeoutError, asyncio.CancelledError):
                 await self.disconnect(session_id)
                 raise
@@ -139,7 +158,9 @@ class Worker:
                 raise HTTPException(502, f"Package changed but pi reload failed: {exc}") from exc
 
     async def close(self):
-        await asyncio.gather(*(rpc.close() for rpc in self.connections.values()), return_exceptions=True)
+        await asyncio.gather(
+            *(rpc.close() for rpc in self.connections.values()), return_exceptions=True
+        )
         self.db.close()
 
 
@@ -154,7 +175,9 @@ app = FastAPI(title="Pi sandbox worker", lifespan=lifespan)
 
 
 def authorize(authorization: str = Header(default="")):
-    if not hmac.compare_digest(authorization, "Bearer " + os.getenv("SANDBOX_TOKEN", "worker-demo-change-me")):
+    if not hmac.compare_digest(
+        authorization, "Bearer " + os.getenv("SANDBOX_TOKEN", "worker-demo-change-me")
+    ):
         raise HTTPException(401, "Invalid worker token")
 
 
@@ -169,7 +192,9 @@ class PackageRequest(BaseModel):
     @model_validator(mode="after")
     def source_supported(self):
         # Pass source as one argv element, never interpolate it into shell code.
-        if any(c in self.source for c in ("\x00", "\n", "\r")) or not self.source.startswith(("npm:", "git:", "https://", "http://", "/workspace/")):
+        if any(c in self.source for c in ("\x00", "\n", "\r")) or not self.source.startswith(
+            ("npm:", "git:", "https://", "http://", "/workspace/")
+        ):
             raise ValueError("Use an npm:, git:, HTTPS/HTTP source or an absolute /workspace/ path")
         return self
 
@@ -189,7 +214,9 @@ async def prompt(session_id: UUID, body: Prompt):
     try:
         return await app.state.worker.prompt(str(session_id), body.prompt)
     except TimeoutError as exc:
-        raise HTTPException(504, "Pi prompt timed out; process stopped; side effects may have occurred") from exc
+        raise HTTPException(
+            504, "Pi prompt timed out; process stopped; side effects may have occurred"
+        ) from exc
 
 
 @app.get("/sessions/{session_id}/resources", dependencies=[Depends(authorize)])
@@ -213,7 +240,9 @@ async def package(session_id: UUID, body: PackageRequest):
     try:
         return await app.state.worker.package(str(session_id), body)
     except TimeoutError as exc:
-        raise HTTPException(504, "Package operation timed out; partial changes may remain; inspect before retrying") from exc
+        raise HTTPException(
+            504, "Package operation timed out; partial changes may remain; inspect before retrying"
+        ) from exc
 
 
 @app.delete("/sessions/{session_id}", dependencies=[Depends(authorize)])

@@ -124,7 +124,7 @@ K8s 建議分配：
 | 設定 | 目前來源／預設 | 如何修改 |
 |---|---|---|
 | `PYTHON_PACKAGE_INSTALLER` | Docker build ARG，預設 `uv` | `docker compose build --build-arg PYTHON_PACKAGE_INSTALLER=pip sandbox-1 sandbox-2`；只寫入 `.env` 不會自動生效 |
-| 預裝 Python 套件 | `sandbox/python-requirements.txt` | 修改後重新 build、部署 image；不是 runtime 環境變數 |
+| 預裝 Python 套件 | `pyproject.toml` 的 `sandbox` dependency group 與 `uv.lock` | 修改後重新 build、部署 image；不是 runtime 環境變數 |
 | `SANDBOX_ENDPOINTS` | compose.yaml 的 JSON，固定指向 sandbox-1、sandbox-2 | 增加 worker 時修改 Compose／K8s Deployment；只放 `.env` 不會覆蓋目前固定值 |
 | `SANDBOX_ID` | Compose 每個 worker 的固定名稱 | 每個 worker 身分需唯一，並與 endpoints 的 key 一致 |
 | `OPENAI_AGENTS_DISABLE_TRACING` | API Compose 固定為 `1` | 雲端 tracing 目前停用；本機 session tracing 不受影響。只放 `.env` 不會改變固定值 |

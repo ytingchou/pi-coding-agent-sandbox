@@ -1,13 +1,14 @@
 """Build-time package manifest and session-visible effective inventory (no network)."""
+
 import argparse
 import hashlib
-from importlib import metadata
 import json
-from pathlib import Path
 import platform
 import re
-import sys
 import sqlite3
+import sys
+from importlib import metadata
+from pathlib import Path
 
 
 def normalized(name):
@@ -25,19 +26,25 @@ def inventory():
         name = dist.metadata.get("Name")
         if name and normalized(name) not in found:
             found[normalized(name)] = {
-                "name": name, "version": dist.version,
+                "name": name,
+                "version": dist.version,
                 "imports": sorted(imports.get(normalized(name), [])),
                 "location": str(dist.locate_file("")),
             }
-    return {"python": platform.python_version(), "executable": sys.executable,
-            "standard_library": {"sqlite3": {"sqlite_version": sqlite3.sqlite_version}},
-            "packages": sorted(found.values(), key=lambda p: normalized(p["name"]))}
+    return {
+        "python": platform.python_version(),
+        "executable": sys.executable,
+        "standard_library": {"sqlite3": {"sqlite_version": sqlite3.sqlite_version}},
+        "packages": sorted(found.values(), key=lambda p: normalized(p["name"])),
+    }
 
 
 def build(directory):
     directory.mkdir(parents=True, exist_ok=True)
     data = inventory()
-    data["requirements_sha256"] = hashlib.sha256((directory / "requirements.txt").read_bytes()).hexdigest()
+    data["requirements_sha256"] = hashlib.sha256(
+        (directory / "requirements.txt").read_bytes()
+    ).hexdigest()
     data["policy"] = "preinstalled-only"
     (directory / "packages.json").write_text(json.dumps(data, indent=2) + "\n")
     packages = "; ".join(f"{p['name']}=={p['version']}" for p in data["packages"])
@@ -48,7 +55,7 @@ def build(directory):
         "ONLY during image build. Do not run pip install, uv pip install, uv add/sync, "
         "or download dependencies at runtime. Use the existing libraries or Python standard library. "
         "If a required dependency is missing, report its name and ask the operator to add it to "
-        "sandbox/python-requirements.txt and rebuild the image. Do not retry installation.\n"
+        "the sandbox dependency group in pyproject.toml, run uv lock, and rebuild the image. Do not retry installation.\n"
         f"Image preinstalled distributions (including transitive dependencies): {packages}\n"
         f"Python standard library sqlite3 is available (SQLite {sqlite3.sqlite_version}); do not pip install sqlite3.\n"
         "Full image inventory with import-name hints: /opt/python-runtime/packages.json. "

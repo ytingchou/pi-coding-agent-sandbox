@@ -2,7 +2,7 @@
 
 這份文件對應本專案的 Docker Compose、Agents SDK orchestrator 與 pi RPC worker。目的是讓你自行驗證「模型真的呼叫工具寫檔、執行 Python，並將實際結果回傳給外層 Agent」，保存可檢查的證據，並分別計算兩層模型的用量。
 
-提供工具：[`scripts/verify_sessions.py`](../scripts/verify_sessions.py)。主機只需要 **Python 3.10+ 標準函式庫、Docker 與 Docker Compose**，不用另外安裝 Python 套件。工具在主機執行，再透過 `docker compose exec` 存取容器；不要在 API container 裡執行這個工具。它不需要把 Docker socket 掛進 sandbox。
+提供工具：[`scripts/verify_sessions.py`](../scripts/verify_sessions.py)。主機使用 **Python 3.12、uv、Docker 與 Docker Compose**，先執行 `uv sync --locked`。工具本身只用 Python 標準函式庫；透過 uv 使用專案指定的 Python。工具在主機執行，再透過 `docker compose exec` 存取容器；不要在 API container 裡執行這個工具。它不需要把 Docker socket 掛進 sandbox。
 
 ## 1. 一次完成真實 API 驗證
 
@@ -15,7 +15,7 @@ cp -n .env.example .env
 chmod 600 .env
 docker compose up --build -d --wait
 
-python3 scripts/verify_sessions.py verify --output artifacts/my-verification
+uv run --locked python scripts/verify_sessions.py verify --output artifacts/my-verification
 ```
 
 `--output` 必須是尚未存在的目錄，避免覆蓋之前的證據。不指定時使用 `artifacts/verification-日期-時間`。工具固定從 repository 根目錄執行 Compose，即使你從其他工作目錄呼叫也能找到服務；相對 output 路徑則以你的目前工作目錄解析。
@@ -43,7 +43,7 @@ Skill 情境刻意直接呼叫 `/pi/prompt`，確保使用 pi 原生 skill comma
 工具預設保留 sessions，供你繼續查看。讀完證據後執行：
 
 ```bash
-python3 scripts/verify_sessions.py cleanup --report artifacts/my-verification/report.json
+uv run --locked python scripts/verify_sessions.py cleanup --report artifacts/my-verification/report.json
 ```
 
 `cleanup` 只刪除報告列出的 sessions，且要求已執行 collection；本機匯出檔保留。API 目前沒有刪除邏輯 Agent 的 endpoint，所以 Agent registry／外層歷史仍留在 API volume。不要以 `docker compose down -v` 代替這個步驟，它會刪除整個 sample 的資料。
@@ -109,7 +109,7 @@ HTTP requests[i]（開始／結束時間、agent_id、允許的 session_ids）
 快速查看所有工具呼叫、結果與 usage（在主機執行）：
 
 ```bash
-python3 - artifacts/my-verification/report.json <<'PY'
+uv run --locked python - artifacts/my-verification/report.json <<'PY'
 import json, sys
 r = json.load(open(sys.argv[1]))
 for e in r['evidence']:
@@ -188,7 +188,7 @@ Pi 快取輸入為 7,168。原始證據見 [`reports/sandbox-capabilities-verifi
 對工具建立、尚未刪除的 sessions：
 
 ```bash
-python3 scripts/verify_sessions.py collect \
+uv run --locked python scripts/verify_sessions.py collect \
   --report artifacts/my-verification/report.json \
   --artifact my-result.json
 ```
@@ -229,7 +229,7 @@ python3 scripts/verify_sessions.py collect \
 工具本身的離線回歸測試：
 
 ```bash
-python3 -m unittest discover -s tests -p test_verification_tool.py -v
+uv run --locked python -m unittest discover -s tests -p test_verification_tool.py -v
 ```
 
 測試涵蓋快取 token 不重複計算、錯誤回應 usage、缺失／既有 session 的統計限制，並使用先前真實執行報告檢查「移除 bash 執行證據後必須失敗」。Docker 匯出路徑也以不呼叫模型的原生 extension command 實測；真正模型行為請使用本文件的 `verify` 指令。

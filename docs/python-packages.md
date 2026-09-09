@@ -4,7 +4,7 @@
 
 ## 1. 指定 image 預裝的 Python 套件
 
-編輯 [`sandbox/python-requirements.txt`](../sandbox/python-requirements.txt)。預設包含：
+編輯 [`pyproject.toml`](../pyproject.toml) 的 `[dependency-groups].sandbox`，再執行 `uv lock`；或使用 `uv add --group sandbox 'package-name==1.2.3'`。預設包含：
 
 | 套件 | 用途 |
 |---|---|
@@ -17,10 +17,12 @@
 套件列表可以換成公司實際需要的項目。requests／MinIO SDK 的預裝不會授予網路權限，也不會自動提供 MinIO 憑證；是否可存取內部服務取決於部署的網路政策與你交給 session 的設定。
 
 ```bash
+# 手動修改 pyproject.toml 後更新 lock；兩個檔案一起納入 Git
+uv lock
 # 預設由 uv 在建置時安裝
 docker compose build sandbox-1 sandbox-2
 
-# 也可以選用 pip；兩種方式讀取同一份 requirements
+# 也可以選用 pip；兩種方式讀取 uv.lock 匯出的同一份含 hashes requirements
 docker compose build --build-arg PYTHON_PACKAGE_INSTALLER=pip sandbox-1 sandbox-2
 
 # 更新本機服務
@@ -29,7 +31,7 @@ docker compose up -d --wait
 
 建置環境需要能取得 base images、npm、PyPI 或公司套件鏡像。新增套件／版本後必須重建並部署新 image。需要 C/C++ 或 OS library 的套件需在 Dockerfile 補上相依套件。不要將 registry token、模型 key 或 MinIO key 寫進 Dockerfile 的 ARG／ENV 或 requirements URL；CI 的認證請使用 BuildKit secrets／公司建置憑證機制。
 
-目前固定直接依賴版本；傳遞依賴的實際版本保存在 image manifest。若公司要求完全可重現建置，應另提交包含所有傳遞依賴與 hashes 的 lock requirements，並使用 image digest 部署。
+直接與傳遞依賴均由 `uv.lock` 鎖定；Docker 以 `--require-hashes` 安裝匯出結果，實際版本另保存於 image manifest。若公司要求完整的建置重現性，還需固定 base image digest 與 OS 套件來源。
 
 ## 2. venv 與隔離如何運作
 
@@ -42,7 +44,7 @@ Runtime 設定：
 - `PIP_NO_INDEX=1`：pip 預設不查詢 package index。
 - `UV_OFFLINE=true`、`UV_PYTHON_DOWNLOADS=never`：uv 預設不連網或下載 Python。
 - `PIP_REQUIRE_VIRTUALENV=true`：pip 必須在 venv 內使用。
-- pi system instructions 明確要求只使用預裝依賴；缺少套件時回報名稱，要求修改 requirements 並重建，不重試安裝。
+- pi system instructions 明確要求只使用預裝依賴；缺少套件時回報名稱，要求修改 pyproject.toml 的 sandbox group、更新 uv.lock 並重建，不重試安裝。
 
 這些環境變數和提示不是網路安全邊界；任意程式仍可能覆寫變數、用 URL 或其他工具嘗試連線。正式 K8s 環境必須由公司的 CNI／NetworkPolicy 限制外部 egress，並允許必要的內部 DNS、模型 gateway 和業務服務。pip／uv binaries 仍保留供診斷、建置／隔離測試使用；本機 wheel 安裝能力不代表離線部署中建議動態安裝。
 
@@ -53,7 +55,7 @@ Runtime 設定：
 Build 時執行 `sandbox/python_inventory.py`，用實際 Python metadata 產生：
 
 ```text
-/opt/python-runtime/requirements.txt  # 建置輸入
+/opt/python-runtime/requirements.txt  # 由 uv.lock 匯出的建置輸入
 /opt/python-runtime/packages.json     # 實際版本、傳遞依賴、import 名稱提示、sqlite3 版本
 /opt/python-runtime/SYSTEM.md         # 預裝套件摘要與禁止 runtime 安裝的工作指示
 ```
@@ -128,7 +130,7 @@ K8s 中請把上述設定分別放進 API 與 worker Deployment 的 env；API ke
 先建置 image，再使用 overlay，將測試 worker 設定為 `network_mode: none`（只有 loopback）。overlay 僅供測試；正式服務仍需內部網路。
 
 ```bash
-docker compose build sandbox-1
+docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
 docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps \
   -e RUN_ISOLATION_TESTS=1 sandbox-1 /opt/server/bin/python -m pytest \
   -p no:cacheprovider tests/test_preinstalled.py tests/test_model_config.py tests/test_gateway.py -q
@@ -141,7 +143,7 @@ docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps \
 待部署到公司可存取 gateway 的環境後，可自行執行：
 
 ```bash
-python3 scripts/verify_sessions.py verify --output artifacts/internal-gateway-verification
+uv run --locked python scripts/verify_sessions.py verify --output artifacts/internal-gateway-verification
 ```
 
 這才會呼叫設定好的模型。gateway 不支援的參數應依錯誤與服務文件調整；切勿為了通過測試而切回外部模型。

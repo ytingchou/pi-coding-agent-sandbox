@@ -115,7 +115,8 @@ Extensions、package 安裝 hooks 與 helper 都以該 session 的 UID、namespa
 ## 測試
 
 ```bash
-docker compose run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 \
+docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
+docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 \
   /opt/server/bin/python -m pytest -p no:cacheprovider \
   tests/test_rpc.py tests/test_worker.py tests/test_isolation.py tests/test_resources.py -q
 ```

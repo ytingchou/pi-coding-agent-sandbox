@@ -2,11 +2,11 @@
 # The worker has loopback only: no DNS, package index, or model access.
 services:
   sandbox-1:
+    image: pi-agents-sample-sandbox-test
+    build:
+      target: test
     networks: !reset []
     network_mode: none
-    volumes:
-      - ./orchestrator:/app/orchestrator:ro
-      - ./tests:/app/tests:ro
     environment:
       OPENAI_API_KEY: ""
       PI_API_KEY: ""

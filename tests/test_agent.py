@@ -61,7 +61,7 @@ async def test_real_agents_sdk_tool_loop_and_history(tmp_path):
     set_tracing_disabled(True)
 
     class Manager:
-        def sessions(self, agent_id):
+        async def sessions(self, agent_id):
             return [{"id": "session-a", "status": "ready", "sandbox_id": "one"}]
 
         async def prompt(self, agent_id, session_id, prompt):
@@ -89,7 +89,7 @@ async def test_reject_foreign_tool_session(tmp_path):
     set_tracing_disabled(True)
 
     class Manager:
-        def sessions(self, agent_id):
+        async def sessions(self, agent_id):
             return [{"id": "allowed", "status": "ready"}]
 
         async def prompt(self, *args):

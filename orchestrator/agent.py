@@ -48,7 +48,7 @@ async def run_agent(
     model=None,
     history_path="/state/conversations.sqlite",
 ):
-    bindings = manager.sessions(agent_id)
+    bindings = await manager.sessions(agent_id)
     available = {item["id"] for item in bindings if item["status"] == "ready"}
     selected = set(session_ids) if session_ids is not None else available
     if not selected or not selected <= available:

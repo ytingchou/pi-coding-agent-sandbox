@@ -1,5 +1,4 @@
 import asyncio
-import sqlite3
 import time
 from types import SimpleNamespace
 
@@ -11,9 +10,20 @@ from orchestrator.session_manager import SessionManager
 from sandbox.app import Worker
 
 
-def age(manager, seconds=100):
-    with manager.db:
-        manager.db.execute("UPDATE bindings SET last_activity=?", (time.time() - seconds,))
+async def age(manager, seconds=100):
+    timestamp = time.time() - seconds
+    for row in manager.registry.db.bindings.find({}):
+        manager.registry.db.bindings.update_one(
+            {"_id": row["_id"]},
+            {
+                "$set": {
+                    "last_activity": timestamp,
+                    "expires_at": timestamp + row["idle_ttl_seconds"]
+                    if row["retention"] == "ephemeral"
+                    else None,
+                }
+            },
+        )
 
 
 def manager_at(path, handler=None):
@@ -29,25 +39,25 @@ def manager_at(path, handler=None):
 
 
 @pytest.mark.asyncio
-async def test_retention_dry_run_busy_agent_and_recovery(tmp_path):
-    manager = manager_at(tmp_path)
-    agent = manager.create_agent()["agent_id"]
+async def test_retention_dry_run_busy_agent_and_recovery(tmp_path, registry_factory):
+    manager = manager_at(registry_factory(tmp_path))
+    agent = (await manager.create_agent())["agent_id"]
     managed = await manager.allocate(agent, "one")
     ephemeral = await manager.allocate(agent, "one", "ephemeral", 10)
-    age(manager)
+    await age(manager)
     async with manager.lock(agent):
         assert not (await manager.cleanup_once())["candidates"]
     assert (await manager.cleanup_once(dry_run=True))["candidates"] == [ephemeral["id"]]
-    assert len(manager.sessions(agent)) == 2
+    assert len(await manager.sessions(agent)) == 2
     await manager.close()
-    manager = manager_at(tmp_path)
+    manager = manager_at(registry_factory(tmp_path))
     assert (await manager.cleanup_once())["deleted"] == [ephemeral["id"]]
-    assert manager.sessions(agent)[0]["id"] == managed["id"]
+    assert (await manager.sessions(agent))[0]["id"] == managed["id"]
     await manager.close()
 
 
 @pytest.mark.asyncio
-async def test_cleanup_failure_retries_without_recreating_session(tmp_path):
+async def test_cleanup_failure_retries_without_recreating_session(tmp_path, registry_factory):
     available = False
     methods = []
 
@@ -57,12 +67,12 @@ async def test_cleanup_failure_retries_without_recreating_session(tmp_path):
             raise httpx.ConnectError("offline", request=request)
         return httpx.Response(200, json={})
 
-    manager = manager_at(tmp_path, handler)
-    agent = manager.create_agent()["agent_id"]
+    manager = manager_at(registry_factory(tmp_path), handler)
+    agent = (await manager.create_agent())["agent_id"]
     session = await manager.allocate(agent, "one", "ephemeral", 1)
-    age(manager)
+    await age(manager)
     assert (await manager.cleanup_once())["failed"][0]["status"] == 503
-    assert manager.binding(agent, session["id"])["status"] == "deleting"
+    assert (await manager.binding(agent, session["id"]))["status"] == "deleting"
     with pytest.raises(HTTPException):
         await manager.connect(agent, session["id"])
     available = True
@@ -72,48 +82,36 @@ async def test_cleanup_failure_retries_without_recreating_session(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_recent_worker_activity_vetoes_cleanup_and_policy_ownership(tmp_path):
+async def test_recent_worker_activity_vetoes_cleanup_and_policy_ownership(
+    tmp_path, registry_factory
+):
     manager = manager_at(
-        tmp_path,
+        registry_factory(tmp_path),
         lambda request: (
             httpx.Response(409, json={"detail": "active"})
             if request.method == "DELETE"
             else httpx.Response(200, json={})
         ),
     )
-    agent = manager.create_agent()["agent_id"]
-    other = manager.create_agent()["agent_id"]
+    agent = (await manager.create_agent())["agent_id"]
+    other = (await manager.create_agent())["agent_id"]
     session = await manager.allocate(agent, "one", "ephemeral", 10)
-    age(manager)
+    await age(manager)
     with pytest.raises(HTTPException):
-        manager.retention(other, session["id"], "managed")
+        await manager.retention(other, session["id"], "managed")
     assert (await manager.cleanup_once())["failed"][0]["status"] == 409
-    assert manager.binding(agent, session["id"])["status"] == "ready"
+    assert (await manager.binding(agent, session["id"]))["status"] == "ready"
     assert not (await manager.cleanup_once())["candidates"]
-    manager.retention(agent, session["id"], "managed")
-    age(manager)
-    assert not (await manager.cleanup_once())["candidates"]
-    await manager.close()
-
-
-@pytest.mark.asyncio
-async def test_old_database_migration_preserves_managed_sessions(tmp_path):
-    db = sqlite3.connect(tmp_path / "registry.sqlite")
-    db.executescript("""
-        CREATE TABLE agents(id TEXT PRIMARY KEY);
-        CREATE TABLE bindings(id TEXT PRIMARY KEY, agent_id TEXT, sandbox_id TEXT, status TEXT);
-        INSERT INTO agents VALUES ('a');
-        INSERT INTO bindings VALUES ('s', 'a', 'one', 'ready');
-    """)
-    db.close()
-    manager = manager_at(tmp_path)
-    assert manager.binding("a", "s")["retention"] == "managed"
+    await manager.retention(agent, session["id"], "managed")
+    await age(manager)
     assert not (await manager.cleanup_once())["candidates"]
     await manager.close()
 
 
 @pytest.mark.asyncio
-async def test_worker_suspend_preserves_files_and_delete_checks_activity(tmp_path, monkeypatch):
+async def test_worker_suspend_preserves_files_and_delete_checks_activity(
+    tmp_path, registry_factory, monkeypatch
+):
     monkeypatch.setenv("PI_IDLE_DISCONNECT_SECONDS", "10")
     worker = Worker(tmp_path, tmp_path / "sessions")
     worker.db.execute("INSERT INTO sessions(id, last_activity) VALUES ('s', 1)")
@@ -144,7 +142,9 @@ async def test_worker_suspend_preserves_files_and_delete_checks_activity(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_worker_reuses_released_uid_and_background_shutdown(tmp_path, monkeypatch):
+async def test_worker_reuses_released_uid_and_background_shutdown(
+    tmp_path, registry_factory, monkeypatch
+):
     worker = Worker(tmp_path, tmp_path / "sessions")
     monkeypatch.setenv("MAX_SESSIONS", "1")
     monkeypatch.setattr("sandbox.app.provision", lambda path, uid: path.mkdir(parents=True))
@@ -165,23 +165,23 @@ async def test_worker_reuses_released_uid_and_background_shutdown(tmp_path, monk
 
 
 @pytest.mark.asyncio
-async def test_background_sweep_and_successful_prompt_refresh_ttl(tmp_path):
-    manager = manager_at(tmp_path)
-    agent = manager.create_agent()["agent_id"]
+async def test_background_sweep_and_successful_prompt_refresh_ttl(tmp_path, registry_factory):
+    manager = manager_at(registry_factory(tmp_path))
+    agent = (await manager.create_agent())["agent_id"]
     session = await manager.allocate(agent, "one", "ephemeral", 10)
-    age(manager)
+    await age(manager)
     await manager.prompt(agent, session["id"], "hello")
     assert not (await manager.cleanup_once())["candidates"]
-    age(manager)
+    await age(manager)
     manager.cleanup_task = asyncio.create_task(manager.cleanup_loop(0.01))
     async with asyncio.timeout(2):
-        while manager.sessions(agent):
+        while await manager.sessions(agent):
             await asyncio.sleep(0.01)
     await manager.close()
 
 
 @pytest.mark.asyncio
-async def test_real_pi_suspend_reconnect_and_expire(tmp_path, monkeypatch):
+async def test_real_pi_suspend_reconnect_and_expire(tmp_path, registry_factory, monkeypatch):
     import os
     import uuid
     from pathlib import Path
@@ -223,7 +223,7 @@ async def test_real_pi_suspend_reconnect_and_expire(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_concurrent_sweeps_tolerate_deleted_snapshot_rows(tmp_path):
+async def test_concurrent_sweeps_tolerate_deleted_snapshot_rows(tmp_path, registry_factory):
     first_delete = asyncio.Event()
     release = asyncio.Event()
     first = None
@@ -234,16 +234,16 @@ async def test_concurrent_sweeps_tolerate_deleted_snapshot_rows(tmp_path):
             await release.wait()
         return httpx.Response(200, json={})
 
-    manager = manager_at(tmp_path, handler)
-    a = manager.create_agent()["agent_id"]
-    b = manager.create_agent()["agent_id"]
+    manager = manager_at(registry_factory(tmp_path), handler)
+    a = (await manager.create_agent())["agent_id"]
+    b = (await manager.create_agent())["agent_id"]
     first = (await manager.allocate(a, "one", "ephemeral", 1))["id"]
     second = (await manager.allocate(b, "one", "ephemeral", 1))["id"]
-    age(manager)
+    await age(manager)
     sweep = asyncio.create_task(manager.cleanup_once())
     await first_delete.wait()
     assert (await manager.cleanup_once())["deleted"] == [second]
     release.set()
     assert (await sweep)["deleted"] == [first]
-    assert manager.sessions(a) == manager.sessions(b) == []
+    assert (await manager.sessions(a)) == (await manager.sessions(b)) == []
     await manager.close()

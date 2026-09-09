@@ -15,8 +15,8 @@ from orchestrator.session_manager import SessionManager
 @asynccontextmanager
 async def lifespan(app):
     app.state.manager = SessionManager()
-    app.state.manager.start_cleanup()
     try:
+        await app.state.manager.start()
         yield
     finally:
         await app.state.manager.close()
@@ -67,12 +67,12 @@ async def sandboxes():
 
 @app.post("/agents", dependencies=[Depends(authorize)])
 async def create_agent():
-    return app.state.manager.create_agent()
+    return await app.state.manager.create_agent()
 
 
 @app.get("/agents/{agent_id}/sessions", dependencies=[Depends(authorize)])
 async def list_sessions(agent_id: UUID):
-    return app.state.manager.sessions(str(agent_id))
+    return await app.state.manager.sessions(str(agent_id))
 
 
 @app.post("/agents/{agent_id}/sessions", dependencies=[Depends(authorize)])
@@ -138,7 +138,7 @@ async def pi_prompt(agent_id: UUID, session_id: UUID, body: PiPromptRequest):
 async def run(agent_id: UUID, body: RunRequest):
     manager = app.state.manager
     async with manager.lock(str(agent_id)):
-        manager.agent(str(agent_id))
+        await manager.agent(str(agent_id))
         if not os.getenv("OPENAI_API_KEY"):
             raise HTTPException(503, "Set OPENAI_API_KEY in .env to run the live demo")
         try:
@@ -173,7 +173,7 @@ async def run(agent_id: UUID, body: RunRequest):
 async def retention(agent_id: UUID, session_id: UUID, body: RetentionRequest):
     manager = app.state.manager
     async with manager.lock(str(agent_id)):
-        return manager.retention(
+        return await manager.retention(
             str(agent_id), str(session_id), body.retention, body.idle_ttl_seconds
         )
 
@@ -186,3 +186,9 @@ async def cleanup_status():
 @app.post("/sessions/cleanup", dependencies=[Depends(authorize)])
 async def cleanup(dry_run: bool = True):
     return await app.state.manager.cleanup_once(dry_run=dry_run)
+
+
+@app.get("/ready")
+async def ready():
+    await app.state.manager.registry.ping()
+    return {"status": "ok"}

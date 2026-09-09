@@ -27,3 +27,7 @@ check: lint test
 .PHONY: lint-helm
 lint-helm:
 	$(UV) run --locked python scripts/check_helm.py
+
+.PHONY: test-mongodb
+test-mongodb:
+	docker compose -f compose.yaml -f compose.mongodb-test.yaml run --build --rm registry-test

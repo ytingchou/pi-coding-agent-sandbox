@@ -170,7 +170,7 @@ async def test_independent_chat_gateways_route_both_agents_and_execute_python(
     worker = Worker(tmp_path / "state", root)
 
     class Manager:
-        def sessions(self, aid):
+        async def sessions(self, aid):
             return [{"id": sid, "sandbox_id": "sandbox-1", "status": "ready"}]
 
         async def prompt(self, aid, session_id, prompt):

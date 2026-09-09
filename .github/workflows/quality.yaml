@@ -21,3 +21,4 @@ jobs:
       - run: uv sync --locked
       - run: make check
       - run: make test-container
+      - run: make test-mongodb

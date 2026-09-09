@@ -53,6 +53,12 @@ services:
     restart: unless-stopped
     ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
     environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-pi_agents}
+      MONGODB_USERNAME: ${MONGODB_USERNAME-pi_demo}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD-pi-demo-change-me}
+      MONGODB_AUTH_SOURCE: ${MONGODB_AUTH_SOURCE:-pi_agents}
+      MONGODB_TIMEOUT_MS: ${MONGODB_TIMEOUT_MS:-5000}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
@@ -66,6 +72,7 @@ services:
       OPENAI_AGENTS_DISABLE_TRACING: "1"
     volumes: [agent-state:/state]
     depends_on:
+      mongodb: {condition: service_healthy}
       sandbox-1: {condition: service_healthy}
       sandbox-2: {condition: service_healthy}
     cap_drop: [ALL]
@@ -76,10 +83,37 @@ services:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=3)"
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # MongoDB is only reachable on the Compose network; no host port is published.
+  mongodb:
+    image: mongo:8.0.16
+    mem_limit: 1g
+    command: [mongod, --wiredTigerCacheSizeGB, "0.25"]
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-mongo-root-demo-change-me}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-pi_agents}
+      MONGODB_USERNAME: ${MONGODB_USERNAME:-pi_demo}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-pi-demo-change-me}
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongodb/init.js:/docker-entrypoint-initdb.d/01-app-user.js:ro
+    networks: [agents]
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "db.adminCommand({ping:1}).ok === 1 ? quit(0) : quit(1)"
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   sandbox-1:
     <<: *worker
@@ -99,6 +133,7 @@ networks:
   agents:
 
 volumes:
+  mongodb-data:
   agent-state:
   sandbox-1-data:
   sandbox-1-state:

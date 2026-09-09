@@ -8,7 +8,7 @@ from orchestrator.session_manager import SessionManager
 
 
 @pytest.mark.asyncio
-async def test_routing_ownership_persistence_and_cleanup(tmp_path):
+async def test_routing_ownership_persistence_and_cleanup(tmp_path, registry_factory):
     calls = []
 
     async def transport(request):
@@ -17,10 +17,12 @@ async def test_routing_ownership_persistence_and_cleanup(tmp_path):
 
     endpoints = {"one": "http://one", "two": "http://two"}
     manager = SessionManager(
-        tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+        registry_factory(tmp_path),
+        endpoints,
+        httpx.AsyncClient(transport=httpx.MockTransport(transport)),
     )
-    agent = manager.create_agent()["agent_id"]
-    other = manager.create_agent()["agent_id"]
+    agent = (await manager.create_agent())["agent_id"]
+    other = (await manager.create_agent())["agent_id"]
     a = await manager.allocate(agent)
     b = await manager.allocate(agent)
     c = await manager.allocate(agent, "one")
@@ -30,18 +32,20 @@ async def test_routing_ownership_persistence_and_cleanup(tmp_path):
     assert exc.value.status_code == 404
     await manager.close()
     manager = SessionManager(
-        tmp_path, endpoints, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+        registry_factory(tmp_path),
+        endpoints,
+        httpx.AsyncClient(transport=httpx.MockTransport(transport)),
     )
-    assert len(manager.sessions(agent)) == 3
+    assert len(await manager.sessions(agent)) == 3
     assert (await manager.prompt(agent, a["id"], "continue"))["output"] == "42"
     assert calls[-1][1].startswith("http://one/")
     await manager.delete(agent, a["id"])
-    assert len(manager.sessions(agent)) == 2
+    assert len(await manager.sessions(agent)) == 2
     await manager.close()
 
 
 @pytest.mark.asyncio
-async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path):
+async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path, registry_factory):
     calls = 0
 
     async def transport(request):
@@ -50,15 +54,17 @@ async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path):
         raise httpx.ReadTimeout("timeout", request=request)
 
     manager = SessionManager(
-        tmp_path, {"one": "http://one"}, httpx.AsyncClient(transport=httpx.MockTransport(transport))
+        registry_factory(tmp_path),
+        {"one": "http://one"},
+        httpx.AsyncClient(transport=httpx.MockTransport(transport)),
     )
-    agent = manager.create_agent()["agent_id"]
+    agent = (await manager.create_agent())["agent_id"]
     with pytest.raises(HTTPException) as exc:
         await manager.allocate(agent, "one")
     session_id = exc.value.detail["session_id"]
-    assert manager.binding(agent, session_id)["status"] == "allocating"
+    assert (await manager.binding(agent, session_id))["status"] == "allocating"
     assert calls == 1
-    manager.db.execute("UPDATE bindings SET status='ready'")
+    manager.registry.db.bindings.update_many({}, {"$set": {"status": "ready"}})
     with pytest.raises(HTTPException):
         await manager.prompt(agent, session_id, "side effects")
     assert calls == 2
@@ -66,8 +72,8 @@ async def test_uncertain_create_stays_recoverable_and_no_prompt_retry(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_agent_lock_serializes_same_agent_but_not_others(tmp_path):
-    manager = SessionManager(tmp_path, {"one": "http://one"})
+async def test_agent_lock_serializes_same_agent_but_not_others(tmp_path, registry_factory):
+    manager = SessionManager(registry_factory(tmp_path), {"one": "http://one"})
     entered = asyncio.Event()
 
     async def waiting():
@@ -85,7 +91,7 @@ async def test_agent_lock_serializes_same_agent_but_not_others(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_resource_operations_enforce_owner_and_sticky_route(tmp_path):
+async def test_resource_operations_enforce_owner_and_sticky_route(tmp_path, registry_factory):
     calls = []
 
     async def transport(request):
@@ -93,12 +99,12 @@ async def test_resource_operations_enforce_owner_and_sticky_route(tmp_path):
         return httpx.Response(200, json={"commands": []})
 
     manager = SessionManager(
-        tmp_path,
+        registry_factory(tmp_path),
         {"one": "http://one", "two": "http://two"},
         httpx.AsyncClient(transport=httpx.MockTransport(transport)),
     )
-    agent = manager.create_agent()["agent_id"]
-    other = manager.create_agent()["agent_id"]
+    agent = (await manager.create_agent())["agent_id"]
+    other = (await manager.create_agent())["agent_id"]
     session = await manager.allocate(agent, "two")
     await manager.resource_call(
         agent,
@@ -113,7 +119,7 @@ async def test_resource_operations_enforce_owner_and_sticky_route(tmp_path):
         await manager.resource_call(other, session["id"], "GET", "resources")
     assert exc.value.status_code == 404
     assert len(calls) == count
-    manager.db.execute("UPDATE bindings SET status='deleting'")
+    manager.registry.db.bindings.update_many({}, {"$set": {"status": "deleting"}})
     with pytest.raises(HTTPException) as exc:
         await manager.resource_call(agent, session["id"], "POST", "resources/reload")
     assert exc.value.status_code == 409

@@ -1,0 +1,27 @@
+# Disposable test databases on the LOCAL Compose MongoDB only; never an external URI.
+services:
+  registry-test:
+    build:
+      context: .
+      dockerfile: sandbox/Dockerfile
+      target: test
+    image: pi-agents-sample-registry-test
+    environment:
+      TEST_MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_USERNAME: ${MONGO_ROOT_USERNAME:-root}
+      MONGODB_PASSWORD: ${MONGO_ROOT_PASSWORD:-mongo-root-demo-change-me}
+      MONGODB_AUTH_SOURCE: admin
+    depends_on:
+      mongodb: {condition: service_healthy}
+    networks: [agents]
+    command:
+      - /opt/server/bin/python
+      - -m
+      - pytest
+      - -p
+      - no:cacheprovider
+      - tests/test_documents.py
+      - tests/test_registry.py
+      - tests/test_manager.py
+      - tests/test_lifecycle.py
+      - -q

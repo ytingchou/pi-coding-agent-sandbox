@@ -1,0 +1,586 @@
+{
+  "compose": {
+    "title": "Docker Compose",
+    "summary": "4 個長駐服務 · 2 個 sandbox · Pi sessions 按需建立",
+    "height": 1060,
+    "nodes": [
+      {
+        "id": "client",
+        "label": "Client / demo scripts",
+        "sub": "host loopback :8000",
+        "x": 30,
+        "y": 60,
+        "detail": "API_TOKEN → API；smoke / resources demo 可不呼叫模型。只有 api port 發布到 host。",
+        "kind": "external"
+      },
+      {
+        "id": "api",
+        "label": "api :8000",
+        "sub": "SDK + SessionManager",
+        "x": 410,
+        "y": 60,
+        "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。",
+        "kind": "service"
+      },
+      {
+        "id": "outer",
+        "label": "Outer model endpoint",
+        "sub": "OPENAI_*",
+        "x": 790,
+        "y": 60,
+        "detail": "外部模型 endpoint，由 OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 設定。可與 Pi gateway 不同；不由 Compose 或 Helm 部署。",
+        "kind": "external"
+      },
+      {
+        "id": "mongo",
+        "label": "mongodb :27017",
+        "sub": "MongoDB 8.0.16",
+        "x": 30,
+        "y": 280,
+        "detail": "只保存 agents 與 bindings；Pydantic 驗證 documents，索引支援 Agent session 排序與 cleanup。沒有 TTL index；worker 成功刪除後才移除 binding。MONGODB_URI 必填，DB 憑證僅給 API。",
+        "kind": "service"
+      },
+      {
+        "id": "w0",
+        "label": "sandbox-1 :8080",
+        "sub": "Worker supervisor",
+        "x": 410,
+        "y": 280,
+        "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。",
+        "kind": "service"
+      },
+      {
+        "id": "w1",
+        "label": "sandbox-2 :8080",
+        "sub": "Worker supervisor",
+        "x": 790,
+        "y": 280,
+        "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。",
+        "kind": "service"
+      },
+      {
+        "id": "dbdata",
+        "label": "mongodb-data",
+        "sub": "/data/db",
+        "x": 30,
+        "y": 500,
+        "detail": "本機 mongod 持久化 volume；1 GiB container memory / 0.25 GiB WiredTiger cache。未發布 MongoDB host port。",
+        "kind": "storage"
+      },
+      {
+        "id": "p0",
+        "label": "Pi sessions A / B",
+        "sub": "按需建立 · 獨立 UID",
+        "x": 410,
+        "y": 500,
+        "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。",
+        "kind": "service"
+      },
+      {
+        "id": "p1",
+        "label": "Pi sessions C / D",
+        "sub": "按需建立 · 獨立 UID",
+        "x": 790,
+        "y": 500,
+        "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。",
+        "kind": "service"
+      },
+      {
+        "id": "history",
+        "label": "agent-state",
+        "sub": "API /state",
+        "x": 30,
+        "y": 720,
+        "detail": "只存外層 SDK conversation history（conversations.sqlite）；不是 session registry。API 重啟後依 agent_id 延續對話。",
+        "kind": "storage"
+      },
+      {
+        "id": "v0",
+        "label": "sandbox-1 data + state",
+        "sub": "/sessions + /state",
+        "x": 410,
+        "y": 720,
+        "detail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/<id>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。",
+        "kind": "storage"
+      },
+      {
+        "id": "v1",
+        "label": "sandbox-2 data + state",
+        "sub": "/sessions + /state",
+        "x": 790,
+        "y": 720,
+        "detail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/<id>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。",
+        "kind": "storage"
+      },
+      {
+        "id": "pimodel",
+        "label": "Pi model endpoint",
+        "sub": "PI_* · shared network",
+        "x": 410,
+        "y": 930,
+        "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。",
+        "kind": "external"
+      }
+    ],
+    "edges": [
+      {
+        "source": "client",
+        "target": "api",
+        "kind": "request"
+      },
+      {
+        "source": "api",
+        "target": "outer",
+        "kind": "model"
+      },
+      {
+        "source": "api",
+        "target": "mongo",
+        "kind": "request"
+      },
+      {
+        "source": "api",
+        "target": "w0",
+        "kind": "request"
+      },
+      {
+        "source": "api",
+        "target": "w1",
+        "kind": "request"
+      },
+      {
+        "source": "mongo",
+        "target": "dbdata",
+        "kind": "storage"
+      },
+      {
+        "source": "api",
+        "target": "history",
+        "kind": "storage"
+      },
+      {
+        "source": "w0",
+        "target": "p0",
+        "kind": "request"
+      },
+      {
+        "source": "w1",
+        "target": "p1",
+        "kind": "request"
+      },
+      {
+        "source": "w0",
+        "target": "v0",
+        "kind": "storage"
+      },
+      {
+        "source": "w1",
+        "target": "v1",
+        "kind": "storage"
+      },
+      {
+        "source": "p0",
+        "target": "pimodel",
+        "kind": "model"
+      },
+      {
+        "source": "p1",
+        "target": "pimodel",
+        "kind": "model"
+      }
+    ]
+  },
+  "k8s": {
+    "title": "Kubernetes Helm",
+    "summary": "單 API + 多 worker · 外部 MongoDB / 模型 / Vault",
+    "height": 1230,
+    "nodes": [
+      {
+        "id": "client",
+        "label": "Client / port-forward",
+        "sub": "同 namespace / 管理入口",
+        "x": 30,
+        "y": 60,
+        "detail": "Chart 不部署 Ingress 或 LoadBalancer。預設 API ingress 允許同 namespace Pods。",
+        "kind": "external"
+      },
+      {
+        "id": "service",
+        "label": "demo-pi-api",
+        "sub": "ClusterIP Service :8000",
+        "x": 410,
+        "y": 60,
+        "detail": "Service 導向單一 API Pod；不具備 session 排程或 Agent 邏輯。",
+        "kind": "service"
+      },
+      {
+        "id": "outer",
+        "label": "Internal outer gateway",
+        "sub": "api.baseUrl / model",
+        "x": 790,
+        "y": 60,
+        "detail": "外部模型 endpoint，由 OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 設定。可與 Pi gateway 不同；不由 Compose 或 Helm 部署。",
+        "kind": "external"
+      },
+      {
+        "id": "mongo",
+        "label": "External MongoDB",
+        "sub": "不由 Chart 部署",
+        "x": 30,
+        "y": 280,
+        "detail": "只保存 agents 與 bindings；Pydantic 驗證 documents，索引支援 Agent session 排序與 cleanup。沒有 TTL index；worker 成功刪除後才移除 binding。MONGODB_URI 必填，DB 憑證僅給 API。 需允許所有 replica-set 成員與 DNS egress。",
+        "kind": "external"
+      },
+      {
+        "id": "api",
+        "label": "demo-pi-api-0",
+        "sub": "StatefulSet · 1 replica",
+        "x": 410,
+        "y": 280,
+        "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。 OnDelete / Retain；UID 1000。",
+        "kind": "service"
+      },
+      {
+        "id": "secrets",
+        "label": "Existing Secrets",
+        "sub": "env + optional CA mount",
+        "x": 790,
+        "y": 280,
+        "detail": "應用 Secret：API_TOKEN、SANDBOX_TOKEN、OPENAI_API_KEY、PI_API_KEY。DB Secret：MONGODB_URI 與成對 optional username/password；CA Secret 可選。Secret env 變更需重建 Pod。",
+        "kind": "config"
+      },
+      {
+        "id": "history",
+        "label": "API state PVC",
+        "sub": "1 GiB · Retain",
+        "x": 30,
+        "y": 500,
+        "detail": "只存外層 SDK conversation history（conversations.sqlite）；不是 session registry。API 重啟後依 agent_id 延續對話。",
+        "kind": "storage"
+      },
+      {
+        "id": "headless",
+        "label": "demo-pi-workers",
+        "sub": "Headless Service :8080",
+        "x": 410,
+        "y": 500,
+        "detail": "提供 ordinal Pod DNS；API 的 SANDBOX_ENDPOINTS 逐一列出 Pod URL，不將有狀態 session 請求隨機負載平衡。",
+        "kind": "config"
+      },
+      {
+        "id": "vault",
+        "label": "Vault + sync controller",
+        "sub": "公司平台預先提供",
+        "x": 790,
+        "y": 500,
+        "detail": "Chart 不安裝 Vault operator。公司既有機制把 secret 同步至 Kubernetes Secret，再由 Pod env 引用。",
+        "kind": "external"
+      },
+      {
+        "id": "dns",
+        "label": "Cluster DNS",
+        "sub": "kube-system :53",
+        "x": 30,
+        "y": 1100,
+        "detail": "平台提供的 DNS；預設 NetworkPolicy 允許 TCP/UDP 53 到 kube-system / kube-dns label。實際 CNI 與 DNS labels 需平台確認。",
+        "kind": "external"
+      },
+      {
+        "id": "pimodel",
+        "label": "Internal Pi gateway",
+        "sub": "sandbox.baseUrl / model",
+        "x": 410,
+        "y": 1100,
+        "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。",
+        "kind": "external"
+      },
+      {
+        "id": "policy",
+        "label": "NetworkPolicies × 2",
+        "sub": "API / worker ingress + egress",
+        "x": 790,
+        "y": 1100,
+        "detail": "預設允許 DNS、同 namespace → API、API → worker。MongoDB、model gateway、MinIO 需自行加入 egress。Workers 共用 Pod 網路，沒有 per-session policy。",
+        "kind": "config"
+      }
+    ],
+    "edges": [
+      {
+        "source": "client",
+        "target": "service",
+        "kind": "request"
+      },
+      {
+        "source": "service",
+        "target": "api",
+        "kind": "request"
+      },
+      {
+        "source": "api",
+        "target": "outer",
+        "kind": "model"
+      },
+      {
+        "source": "api",
+        "target": "mongo",
+        "kind": "request"
+      },
+      {
+        "source": "api",
+        "target": "history",
+        "kind": "storage"
+      },
+      {
+        "source": "vault",
+        "target": "secrets",
+        "kind": "config"
+      },
+      {
+        "source": "secrets",
+        "target": "api",
+        "kind": "config"
+      },
+      {
+        "source": "api",
+        "target": "headless",
+        "kind": "config"
+      },
+      {
+        "source": "api",
+        "target": "dns",
+        "kind": "config"
+      }
+    ]
+  },
+  "session": {
+    "title": "Session isolation",
+    "summary": "個別 UID / filesystem / PID · 共用 Pod 網路與資源",
+    "height": 930,
+    "nodes": [
+      {
+        "id": "api",
+        "label": "API / SessionManager",
+        "sub": "HTTP + Agent lock",
+        "x": 30,
+        "y": 60,
+        "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。",
+        "kind": "service"
+      },
+      {
+        "id": "supervisor",
+        "label": "Worker supervisor",
+        "sub": "root · HTTP :8080",
+        "x": 410,
+        "y": 60,
+        "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。 root 不直接執行生成程式。",
+        "kind": "service"
+      },
+      {
+        "id": "state",
+        "label": "Worker state",
+        "sub": "UID slot / activity",
+        "x": 790,
+        "y": 60,
+        "detail": "/state/worker.sqlite 僅給 supervisor，不掛入 session namespace。",
+        "kind": "storage"
+      },
+      {
+        "id": "a",
+        "label": "Session A",
+        "sub": "UID = 10000 + slot A",
+        "x": 180,
+        "y": 300,
+        "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。",
+        "kind": "service"
+      },
+      {
+        "id": "b",
+        "label": "Session B",
+        "sub": "UID = 10000 + slot B",
+        "x": 670,
+        "y": 300,
+        "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。",
+        "kind": "service"
+      },
+      {
+        "id": "aw",
+        "label": "A workspace / HOME / venv",
+        "sub": "private /tmp /proc",
+        "x": 180,
+        "y": 530,
+        "detail": "/sessions/A/data → /workspace；venv --system-site-packages。只有 A 可以修改；B 的目錄不掛載。",
+        "kind": "storage"
+      },
+      {
+        "id": "bw",
+        "label": "B workspace / HOME / venv",
+        "sub": "private /tmp /proc",
+        "x": 670,
+        "y": 530,
+        "detail": "/sessions/B/data → /workspace；與 A 相同的相對檔名也不會共享可寫檔案。",
+        "kind": "storage"
+      },
+      {
+        "id": "image",
+        "label": "Read-only image runtime",
+        "sub": "Python 3.12 + Pi + seeds",
+        "x": 30,
+        "y": 780,
+        "detail": "/usr、/opt/pi、/opt/pi-resources、/opt/python-runtime 唯讀；/opt/server 與 supervisor state 不可見。Python packages 在 image build 預裝。",
+        "kind": "storage"
+      },
+      {
+        "id": "network",
+        "label": "Shared Pod / container network",
+        "sub": "不是 per-session network isolation",
+        "x": 410,
+        "y": 780,
+        "detail": "Bubblewrap 不 unshare network。Sessions 可連往同一 Pod 允許的目的地，模型 key 在各 session env 中可讀。",
+        "kind": "config"
+      },
+      {
+        "id": "model",
+        "label": "Pi model endpoint",
+        "sub": "內部可達模型 gateway",
+        "x": 790,
+        "y": 780,
+        "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。",
+        "kind": "external"
+      }
+    ],
+    "edges": [
+      {
+        "source": "api",
+        "target": "supervisor",
+        "kind": "request"
+      },
+      {
+        "source": "supervisor",
+        "target": "state",
+        "kind": "storage"
+      },
+      {
+        "source": "supervisor",
+        "target": "a",
+        "kind": "request"
+      },
+      {
+        "source": "supervisor",
+        "target": "b",
+        "kind": "request"
+      },
+      {
+        "source": "a",
+        "target": "aw",
+        "kind": "storage"
+      },
+      {
+        "source": "b",
+        "target": "bw",
+        "kind": "storage"
+      },
+      {
+        "source": "image",
+        "target": "a",
+        "kind": "config"
+      },
+      {
+        "source": "image",
+        "target": "b",
+        "kind": "config"
+      },
+      {
+        "source": "a",
+        "target": "network",
+        "kind": "model"
+      },
+      {
+        "source": "b",
+        "target": "network",
+        "kind": "model"
+      },
+      {
+        "source": "network",
+        "target": "model",
+        "kind": "model"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "授權與 session 範圍",
+      "text": "API 取得 Agent lock，讀取 MongoDB ready bindings，建立當次 allowed session IDs。",
+      "nodes": [
+        "client",
+        "api",
+        "mongo",
+        "service"
+      ]
+    },
+    {
+      "title": "外層模型委派",
+      "text": "SDK 讀取 history；外層模型呼叫 run_python_in_sandbox，session_id 受 enum 與工具檢查約束。",
+      "nodes": [
+        "api",
+        "outer",
+        "history"
+      ]
+    },
+    {
+      "title": "送到固定 worker",
+      "text": "SessionManager 依 sandbox_id 選 endpoint，HTTP 使用 SANDBOX_TOKEN；worker 取得 session lock。",
+      "nodes": [
+        "api",
+        "w0",
+        "supervisor"
+      ]
+    },
+    {
+      "title": "Pi 生成程式",
+      "text": "Pi 收到 JSONL prompt，向自己的模型 gateway 發送 skill / instructions / tools，取得 write 與 bash 工具呼叫。",
+      "nodes": [
+        "w0",
+        "p0",
+        "a",
+        "pimodel",
+        "model"
+      ]
+    },
+    {
+      "title": "Python 在隔離環境執行",
+      "text": "使用 session venv 的 Python 3.12，讀取 image 預裝套件，在自己的 workspace 寫入 code / artifacts。",
+      "nodes": [
+        "p0",
+        "v0",
+        "a",
+        "aw",
+        "image"
+      ]
+    },
+    {
+      "title": "完成與回傳",
+      "text": "等待 agent_end（無模型 extension command 另有路徑）；output / tool_results 回到 SDK，再由外層模型整合。",
+      "nodes": [
+        "p0",
+        "w0",
+        "api",
+        "outer",
+        "a",
+        "supervisor"
+      ]
+    },
+    {
+      "title": "保留證據與回收",
+      "text": "HTTP response、Pi transcript、outer history 與 artifacts 供 collect。暫停 Pi 保留資料；ephemeral cleanup 先刪 worker，再刪 binding。",
+      "nodes": [
+        "history",
+        "mongo",
+        "v0",
+        "aw",
+        "state"
+      ]
+    }
+  ],
+  "workerDetail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。",
+  "volumeDetail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/<id>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。"
+}

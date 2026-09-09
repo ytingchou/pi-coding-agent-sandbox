@@ -1,0 +1,2638 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Pi coding agent sandbox 架構設計：互動部署總覽與完整離線手冊">
+<title>Pi Sandbox · Architecture Atlas</title>
+<style>
+:root{color-scheme:light;--bg:#f5f6f2;--paper:#fff;--ink:#1d302f;--muted:#536663;--line:#cdd9d3;--accent:#086852;--soft:#e4f1e9;--model:#784fb0;--storage:#a15a15;--config:#426e9a}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:25px}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 system-ui,-apple-system,"Noto Sans TC",sans-serif}a{color:var(--accent);text-underline-offset:3px}button,input,select{font:inherit}button,select{cursor:pointer}button{border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink);padding:8px 15px}button:hover{background:var(--soft)}button[aria-pressed=true]{background:var(--accent);color:white;border-color:var(--accent)}:focus-visible{outline:3px solid #b5760d;outline-offset:4px}.skip{position:absolute;left:10px;top:-80px;background:white;padding:10px;z-index:5}.skip:focus{top:10px}.shell{display:grid;grid-template-columns:255px minmax(0,1fr);max-width:1800px;margin:auto}.sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:30px 22px;border-right:1px solid var(--line)}.brand{font-weight:800;letter-spacing:.03em}.version{color:var(--muted);font-size:13px;margin:6px 0 24px}.sidebar input{width:100%;border:1px solid var(--line);padding:9px;border-radius:6px;background:white;color:var(--ink)}.sidebar nav{margin-top:18px}.sidebar nav a{display:block;padding:7px 0;text-decoration:none;line-height:1.5;font-size:14px}.sidebar nav a:hover{text-decoration:underline}.sidebar .small{font-size:12px;margin-top:20px;color:var(--muted)}main{min-width:0;padding:44px clamp(20px,4vw,70px) 80px}header{max-width:900px;margin-bottom:32px}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:700;color:var(--accent)}h1{font-size:clamp(30px,4vw,50px);line-height:1.2;letter-spacing:-.04em;margin:10px 0 18px}header p{font-size:18px;max-width:780px;color:var(--muted)}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.overview{border-top:2px solid var(--ink);padding-top:22px}.intro{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}.intro h2{margin:0}.caption{font-size:14px;color:var(--muted)}.count{margin:14px 0}.count select{padding:4px 14px;border:1px solid var(--line);border-radius:5px;background:white}.explorer{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;margin-top:16px;align-items:start}.explorer>div,.graph-panel{min-width:0}.canvas{overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:9px}.diagram{display:block;width:100%;min-width:960px;height:auto}.diagram text{font-family:inherit;fill:var(--ink);pointer-events:none}.diagram .name{font-size:16px;font-weight:700}.diagram .sub{font-size:13px;fill:var(--muted)}.diagram .node rect{fill:white;stroke:var(--line);stroke-width:1.5}.diagram .node.external rect{fill:#f2f4f8;stroke-dasharray:5 3}.diagram .node.storage rect{fill:#fff5e9}.diagram .node.config rect{fill:#edf4fb}.diagram .node{cursor:pointer}.diagram .node.active rect,.diagram .node:focus rect{stroke:var(--accent);stroke-width:3;fill:var(--soft)}.diagram .edge{fill:none;stroke:#869991;stroke-width:1.5;opacity:.6}.diagram .edge.model{stroke:var(--model)}.diagram .edge.storage{stroke:var(--storage)}.diagram .edge.config{stroke:var(--config);stroke-dasharray:5 4}.diagram .edge.active{stroke-width:3;opacity:1}.diagram .edge.dim{opacity:.12}.detail{padding:20px;background:var(--soft);border-radius:8px;position:sticky;top:20px;overflow-wrap:anywhere}.detail h3{margin:0 0 9px}.detail p{font-size:14px;margin:0}.detail .kind{font-size:11px;letter-spacing:.09em;text-transform:uppercase}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin:12px 0}.legend span:before{content:"";display:inline-block;vertical-align:middle;width:24px;border-top:2px solid #869991;margin-right:6px}.legend .model:before{border-color:var(--model)}.legend .storage:before{border-color:var(--storage)}.legend .config:before{border-color:var(--config);border-top-style:dashed}.walk{margin-top:24px;padding:20px 0;border-block:1px solid var(--line)}.walk p{margin:10px 0}.walk h3{margin:0}.walk .controls{margin-top:12px}.doc{padding-top:38px;margin-top:38px;border-top:1px solid var(--line);max-width:1050px;overflow-wrap:anywhere}.doc h1{font-size:30px;letter-spacing:-.02em}.doc h2{font-size:23px;margin-top:36px}.doc h3{font-size:19px;margin-top:28px}.doc p{max-width:90ch}.source{font-size:12px;color:var(--muted)}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px;margin:16px 0}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--soft);font-weight:600}pre{background:#edf0ec;padding:18px;border-radius:7px;overflow:auto;font-size:13px;line-height:1.6}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em}p code,li code,td code{background:#e8ede8;padding:1px 4px;border-radius:3px}blockquote{margin-left:0;padding-left:18px;border-left:3px solid var(--accent);color:var(--muted)}details{margin:16px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)}[hidden]{display:none!important}.empty{padding:30px 0;color:var(--muted)}footer{border-top:1px solid var(--line);margin-top:50px;padding-top:20px;color:var(--muted);font-size:13px}
+@media(max-width:1450px){.explorer{grid-template-columns:1fr}.detail{position:static;grid-row:1}.shell{grid-template-columns:215px minmax(0,1fr)}}@media(max-width:760px){.shell{display:block}.sidebar{position:static;height:auto;padding:18px 20px;border-right:0;border-bottom:1px solid var(--line)}.sidebar nav{display:flex;gap:8px 18px;flex-wrap:wrap}.sidebar .version,.sidebar .small{display:none}.sidebar input{max-width:400px}.sidebar nav a{font-size:13px}main{padding:25px 18px}.diagram{min-width:960px}header p{font-size:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{body{background:white;color:black}.shell{display:block}.sidebar,.controls,.count,.walk,.detail,.legend,.skip,.source,.source-diagram{display:none!important}main{padding:0}.doc[hidden],.graph-panel[hidden]{display:block!important}.overview[hidden]{display:block!important}.explorer{display:block}.canvas{overflow:visible;border:0}.diagram{width:100%;min-width:0}.diagram .edge.dim{opacity:.6}.graph-panel{break-before:page}pre{white-space:pre-wrap}table{font-size:11px}.doc{break-before:page}a{color:inherit;text-decoration:none}.empty{display:none}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">跳到主要內容</a>
+<div class="shell"><aside class="sidebar"><div class="brand">PI / SANDBOX</div><div class="version">Architecture Atlas · 實作設計文件</div>
+<label for="search">搜尋文件內容</label><input id="search" type="search" placeholder="例如：TTL、Vault、token" autocomplete="off"><p id="search-status" class="caption" aria-live="polite"></p><nav aria-label="架構文件目錄"><a href="#overview">互動架構總覽</a><a href="#chapter-0">架構設計總覽</a>
+<a href="#chapter-1">部署架構與服務總覽</a>
+<a href="#chapter-2">Agent、session 與執行架構</a>
+<a href="#chapter-3">Sandbox 隔離、資源與信任邊界</a>
+<a href="#chapter-4">架構決策與演進方向</a>
+<a href="#chapter-5">MongoDB schema 與 index design</a>
+<a href="#chapter-6">MongoDB registry 架構設計</a>
+<a href="#chapter-7">Skills、extensions 與 pi packages</a>
+<a href="#chapter-8">離線 sandbox：Python 預裝套件與內部模型端點</a>
+<a href="#chapter-9">Session 保留、自動清理與 Pi 程序暫停</a>
+<a href="#chapter-10">Session 驗證、執行證據與 tracing 操作手冊</a>
+<a href="#chapter-11">環境變數設定參考</a>
+<a href="#chapter-12">MongoDB Session Manager、Compose 與 Vault Secret</a>
+<a href="#chapter-13">Kubernetes 多 sandbox Helm 部署</a>
+<a href="#chapter-14">開發、uv 與程式品質檢查</a>
+<a href="#chapter-15">Pi sandbox Helm chart</a></nav><p class="small">靜態架構示意，非即時狀態。<br>離線可用 · 不呼叫模型或服務 API<br>來源：repository 中的 Markdown 與 topology.json。</p></aside>
+<main id="main"><header><div class="eyebrow">SYSTEM DESIGN / ENGINEERING HANDBOOK</div><h1>從 Agent 委派，<br>到隔離環境執行。</h1><p>追蹤每一層的責任、連線與資料位置。比較本機 Compose 與 Kubernetes 部署，理解 session 如何建立、執行、保留與清理。</p><div class="controls"><button id="print" type="button">列印／儲存 PDF</button><a href="architecture/README.md">Markdown 文件入口</a></div></header>
+<section id="overview" class="overview" aria-labelledby="overview-heading"><div class="intro"><h2 id="overview-heading">運行服務總覽</h2><div class="controls" aria-label="部署視圖"><button type="button" data-view="compose" aria-pressed="true">Docker Compose</button><button type="button" data-view="k8s" aria-pressed="false">Kubernetes Helm</button><button type="button" data-view="session" aria-pressed="false">Session 隔離</button></div></div>
+<p class="caption">點選方塊查看職責。虛線框為外部服務；Pi sessions 是按需建立的子程序，不是額外服務。窄螢幕可水平捲動圖。</p>
+<noscript><p>互動圖需要 JavaScript；下方完整文件、服務表與 Mermaid 原始碼仍可閱讀。</p></noscript>
+<div id="worker-control" class="count" hidden><label for="replicas">探索 worker 數量 </label><select id="replicas"><option>1</option><option selected>2</option><option>3</option><option>4</option></select><span id="capacity" class="caption"></span></div>
+<div class="explorer"><div><div id="graphs"></div><div class="legend"><span>HTTP / RPC</span><span class="model">模型連線</span><span class="storage">儲存</span><span class="config">設定 / DNS</span></div><details><summary>目前圖的連線清單（文字版）</summary><ul id="connections"></ul></details></div><aside class="detail" aria-live="polite"><div class="kind" id="kind">元件責任</div><h3 id="node-title">選擇一個元件</h3><p id="node-detail">點選圖中的 API、MongoDB、worker、storage 或外部服務。也可用 Tab 與 Enter 選取。</p></aside></div>
+<section class="walk" aria-labelledby="walk-heading"><div class="eyebrow">REQUEST WALKTHROUGH</div><h3 id="walk-heading">完整 prompt 路徑</h3><p id="step-text" aria-live="polite"></p><div class="controls"><button id="prev" type="button">上一步</button><span id="step-count"></span><button id="next" type="button">下一步</button><button id="clear" type="button">顯示全部連線</button></div><p class="caption">步驟是正常模型委派的示意，不會執行任何程式。Worker 名額、gateway egress 與 PVC 必須由實際部署設定確認。</p></section>
+</section><p id="empty" class="empty" hidden>找不到符合的章節，請換一個關鍵字。</p>
+<article class="doc" id="chapter-0" aria-label="架構設計總覽"><div class="source">SOURCE / docs/architecture/README.md</div><h1>架構設計總覽</h1>
+<p>本文件集描述目前 repository 的實作，涵蓋 Agents SDK、Session Manager、MongoDB、Pi worker、Python 3.12 隔離環境與兩種部署方式。這是一個同步 HTTP、單 API process、多 sandbox、多 session 的 sample；圖中的外部系統不是專案額外部署的服務。</p>
+<h2>文件地圖</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>設計面向</th>
+<th>文件</th>
+<th>實作來源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服務與部署拓撲</td>
+<td><a href="#chapter-1">部署架構</a></td>
+<td>compose.yaml、charts/pi-sandbox/templates</td>
+</tr>
+<tr>
+<td>Agent、RPC 與 session 狀態</td>
+<td><a href="#chapter-2">執行架構</a></td>
+<td>orchestrator、sandbox/app.py、sandbox/rpc.py</td>
+</tr>
+<tr>
+<td>隔離、信任與資源</td>
+<td><a href="#chapter-3">安全與資源架構</a></td>
+<td>sandbox/isolation.py、process.py、Dockerfile</td>
+</tr>
+<tr>
+<td>資料、索引、DB 邊界</td>
+<td><a href="#chapter-5">MongoDB schema</a>、<a href="#chapter-6">Registry 架構</a></td>
+<td>documents.py、registry.py</td>
+</tr>
+<tr>
+<td>Skills、extensions、packages</td>
+<td><a href="#chapter-7">資源擴充設計</a></td>
+<td>sandbox/resources</td>
+</tr>
+<tr>
+<td>離線 Python 套件</td>
+<td><a href="#chapter-8">Python packages</a></td>
+<td>pyproject.toml、python_inventory.py</td>
+</tr>
+<tr>
+<td>清理與長駐程序</td>
+<td><a href="#chapter-9">Session lifecycle</a></td>
+<td>SessionManager.cleanup_once、Worker.suspend_idle</td>
+</tr>
+<tr>
+<td>追蹤、證據與用量</td>
+<td><a href="#chapter-10">Session verification</a></td>
+<td>scripts/verify_sessions.py</td>
+</tr>
+<tr>
+<td>設計取捨與演進</td>
+<td><a href="#chapter-4">架構決策</a></td>
+<td>跨元件限制與後續方向</td>
+</tr>
+<tr>
+<td>設定、操作</td>
+<td><a href="#chapter-11">設定</a>、<a href="#chapter-12">MongoDB</a>、<a href="#chapter-13">Kubernetes</a></td>
+<td>.env.example、Helm values</td>
+</tr>
+</tbody>
+</table></div>
+<h2>核心模型</h2>
+<p>一個邏輯 Agent 可以擁有多個 session，分配到不同 worker；每個 session 固定綁定一個 worker。Agent 是控制層的所有權與對話識別，不是一個永遠存活的 Python Agent 物件。每次 <code>/run</code> 都建立 SDK Agent，再載入該邏輯 Agent 的 history。</p>
+<p>Session Manager 是 API 程序內的元件，不是獨立 container。它持有 HTTP pool、Agent locks 與 cleanup task；Worker supervisor 持有各 session 的 Pi subprocess、RPC pipes、session locks 與閒置暫停 task。MongoDB 不儲存 live connection，也不提供程序內鎖的替代品。</p>
+<h2>互動 HTML 文件</h2>
+<p>開啟 <a href="#overview">architecture.html</a>。此單一檔案內含本文件集與既有操作手冊的快照，可離線閱讀，不載入 CDN、不呼叫 API，也不會接觸 <code>.env</code>。</p>
+<p>可切換 Compose／Kubernetes／session 圖，點選元件查看設定與限制，調整 Kubernetes worker 數量以探索拓撲，逐步查看 prompt 路徑，搜尋文件章節，以及列印成 PDF。圖是架構示意，不是即時監控；replicas 控制不會修改 Helm 或正在運行的系統。</p>
+<p>從 repository 根目錄重建：</p>
+<pre><code class="language-bash">uv sync --locked --group docs
+make docs
+make docs-check
+# 可直接用瀏覽器開 docs/architecture.html；也可啟動只綁 localhost 的預覽：
+uv run --locked python -m http.server 8765 --bind 127.0.0.1 --directory docs
+# http://127.0.0.1:8765/architecture.html
+</code></pre>
+<p>預覽伺服器只提供 docs 目錄；頁內各手冊可正常閱讀，跳到 docs 以外的 source code 連結請直接在 repository 開啟。使用 file:// 開啟 HTML 時，原始碼相對連結可定位本機檔案。</p>
+<p>Markdown 是說明文字的來源；<code>docs/architecture/topology.json</code> 是互動圖來源；<code>docs/architecture/template.html</code> 是 UI。<code>scripts/build_architecture_docs.py</code> 產生 HTML，<code>--check</code> 檢查產物是否與來源一致。修改來源後須重新產生 HTML。Mermaid 原始碼保留在 HTML 的可展開區域，三張總覽圖由內嵌 SVG 呈現；無需外部 Mermaid runtime。</p>
+<h2>驗證邊界</h2>
+<p>目前已驗證本機 Compose、真實本機 MongoDB 與 Linux 容器隔離；Helm 有 lint／render／schema 檢查。公司實際的 CNI、CSI、Pod user namespaces、Vault controller、模型 gateway 相容性與 MongoDB failover 仍需在公司環境驗證。歷史 token 報告是指定執行的證據，不是目前版本每次執行的固定成本。</p>
+</article>
+<article class="doc" id="chapter-1" aria-label="部署架構與服務總覽"><div class="source">SOURCE / docs/architecture/deployment.md</div><h1>部署架構與服務總覽</h1>
+<h2>Docker Compose overview</h2>
+<p>下圖對應預設 <code>docker compose up --build -d --wait</code>。共四個長駐服務：API、MongoDB、sandbox-1、sandbox-2。Pi session 程序按需建立，不會在啟動時自動建滿。</p>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">flowchart TB
+    C[Client / demo scripts] --&gt;|127.0.0.1:8000 · API_TOKEN| A
+    OM[外層模型 endpoint]
+    PM[Pi 模型 endpoint]
+    subgraph Compose[Compose agents network]
+        A[api:8000 · Agents SDK + SessionManager]
+        M[(mongodb:27017 · agents / bindings)]
+        W1[sandbox-1:8080 · Worker supervisor]
+        W2[sandbox-2:8080 · Worker supervisor]
+        A --&gt;|PyMongo| M
+        A --&gt;|HTTP · SANDBOX_TOKEN| W1
+        A --&gt;|HTTP · SANDBOX_TOKEN| W2
+        W1 --&gt; S1[Pi sessions A / B · 個別 UID + bwrap]
+        W2 --&gt; S2[Pi sessions C / D · 個別 UID + bwrap]
+    end
+    A --&gt;|模型 HTTP| OM
+    S1 --&gt;|模型 HTTP| PM
+    S2 --&gt;|模型 HTTP| PM
+    A --- AV[(agent-state: /state)]
+    M --- MV[(mongodb-data: /data/db)]
+    W1 --- V1[(sandbox-1-data + sandbox-1-state)]
+    W2 --- V2[(sandbox-2-data + sandbox-2-state)]
+</code></pre></details>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>服務</th>
+<th>長駐程序</th>
+<th>Network／對外入口</th>
+<th>持久化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>api</td>
+<td>1 Uvicorn process；SDK、manager、cleanup 在同一 process</td>
+<td>host loopback API_PORT（預設 8000）→ 8000</td>
+<td>agent-state <code>/state/conversations.sqlite</code></td>
+</tr>
+<tr>
+<td>mongodb</td>
+<td>mongod</td>
+<td>27017，未發布 host port</td>
+<td>mongodb-data <code>/data/db</code></td>
+</tr>
+<tr>
+<td>sandbox-1</td>
+<td>1 Uvicorn supervisor + 按需 Pi／Python 子程序</td>
+<td>8080，未發布 host port</td>
+<td>sandbox-1-data <code>/sessions</code>、sandbox-1-state <code>/state</code></td>
+</tr>
+<tr>
+<td>sandbox-2</td>
+<td>同上</td>
+<td>同上</td>
+<td>sandbox-2-data、sandbox-2-state</td>
+</tr>
+<tr>
+<td>模型 endpoints</td>
+<td>外部服務，不由 Compose 建立</td>
+<td>API 與 Pi 分別使用自己的 base URL</td>
+<td>由模型供應端管理</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>.env</code> 提供設定；API 等 MongoDB 與 workers healthy 才啟動。MongoDB 啟動 script 只在空 volume 建立應用使用者，不會在每次啟動重設帳密。API <code>/ready</code> 檢查 MongoDB；worker <code>/health</code> 不代表每個 Pi session 都成功啟動或模型可用。</p>
+<p>預設限制：每個 worker 2 CPU／2 GiB／512 PIDs、最多 8 個 sessions；MongoDB 1 GiB memory、WiredTiger cache 0.25 GiB。API 在 Compose 沒有設定 CPU／memory limit。這些是設定值，不是經壓測得到的容量承諾。詳見 <a href="../compose.yaml">compose.yaml</a>。</p>
+<h2>Kubernetes Helm overview</h2>
+<p>以下以 release <code>demo</code>、namespace <code>agents</code>、預設 2 workers 為例。<code>pi.fullname</code> 為 <code>demo-pi</code>。Chart 產生兩個 StatefulSets、兩個 Services、預設兩個 NetworkPolicies；不部署 MongoDB、Vault、模型 gateway、Ingress 或 LoadBalancer。</p>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">flowchart TB
+    C[同 namespace client / port-forward] --&gt; AS[demo-pi-api Service :8000]
+    MG[(External MongoDB cluster)]
+    OM[Internal outer model gateway]
+    PM[Internal Pi model gateway]
+    DNS[kube-system DNS · 平台服務]
+    V[公司 Vault + 同步 controller] -.-&gt; SEC[Existing Kubernetes Secrets]
+    subgraph NS[namespace agents]
+        AS --&gt; A[demo-pi-api-0 · API StatefulSet replicas=1]
+        HS[demo-pi-workers · Headless Service :8080]
+        A --&gt;|固定 Pod DNS · HTTP| W0[demo-pi-workers-0]
+        A --&gt;|固定 Pod DNS · HTTP| W1[demo-pi-workers-1]
+        HS -.-&gt;|DNS discovery| W0
+        HS -.-&gt;|DNS discovery| W1
+        W0 --&gt; S0[Isolated Pi sessions]
+        W1 --&gt; S1[Isolated Pi sessions]
+        A --- AP[(API state PVC)]
+        W0 --- P0[(Worker 0 state + sessions PVCs)]
+        W1 --- P1[(Worker 1 state + sessions PVCs)]
+        A -.-&gt; DNS
+        W0 -.-&gt; DNS
+        W1 -.-&gt; DNS
+    end
+    SEC -.-&gt;|DB + API / outer model env| A
+    SEC -.-&gt;|SANDBOX_TOKEN + PI_API_KEY env| W0
+    SEC -.-&gt;|SANDBOX_TOKEN + PI_API_KEY env| W1
+    A --&gt;|允許所有 cluster members egress| MG
+    A --&gt; OM
+    S0 --&gt; PM
+    S1 --&gt; PM
+</code></pre></details>
+<p>DNS 方塊表示叢集提供的 kube-system DNS，並非 Chart 或 agents namespace 建立的服務。虛線表示設定／發現關係；實線表示請求或儲存關係。實際固定路由如：<code>http://demo-pi-workers-0.demo-pi-workers.agents.svc:8080</code>。Headless Service 提供 DNS，API 不把 session 請求送到任意 worker 的負載平衡地址。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Chart 資源</th>
+<th>數量／預設</th>
+<th>設計目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API StatefulSet / Pod</td>
+<td>1 / 1</td>
+<td>單 process 的 Agent locks 與 SQLite history</td>
+</tr>
+<tr>
+<td>Worker StatefulSet / Pods</td>
+<td>1 / N（預設 2）</td>
+<td>固定 ordinal 身分，個別 session 存放位置</td>
+</tr>
+<tr>
+<td>API ClusterIP Service</td>
+<td>1，8000</td>
+<td>同 namespace 入口；無外部 ingress</td>
+</tr>
+<tr>
+<td>Worker Headless Service</td>
+<td>1，8080</td>
+<td>固定 Pod DNS</td>
+</tr>
+<tr>
+<td>API PVC</td>
+<td>1，1 GiB</td>
+<td>conversation history</td>
+</tr>
+<tr>
+<td>Worker PVC</td>
+<td>每 Pod 2 個，state 1 GiB + sessions 10 GiB</td>
+<td>UID metadata 與 session files；合計 1 + 2N PVCs</td>
+</tr>
+<tr>
+<td>NetworkPolicy</td>
+<td>enabled 時 2 個</td>
+<td>API／worker 各自 ingress／egress 規則</td>
+</tr>
+<tr>
+<td>Secrets、StorageClass、DNS</td>
+<td>平台預先提供</td>
+<td>Chart 引用，不負責建立 Vault integration 或 CSI</td>
+</tr>
+</tbody>
+</table></div>
+<p>兩個 StatefulSets 均為 <code>OnDelete</code>，PVC <code>Retain</code>；升級不會主動終止正在執行的 sessions。API 以非 root UID 1000 執行；worker 使用 <code>hostUsers:false</code>，Pod 內 root supervisor 再降權啟動各 session。需要支援此模式的節點、runtime、CSI 與 admission 設定。</p>
+<p>NetworkPolicy 預設允許同 namespace Pods 進入 API:8000、API 進入 worker:8080，以及 API／worker 到 kube-system DNS。<strong>預設沒有模型或 MongoDB egress</strong>；部署到公司環境時必須加入 gateway、MongoDB 所有 replica-set members／SRV targets 的網路規則。MinIO 若被程式使用，也需另行開放；套件已安裝不代表服務已部署或可連線。</p>
+<p>Vault 同步後的 DB Secret 僅注入 API。應用 Secret 的 outer key 給 API、Pi key 給 worker；CA Secret 可選掛到 API。Secret env 不會隨 Secret 修改更新現有程序，需安排重建 Pod。完整設定見 <a href="#chapter-15">Helm README</a> 與 <a href="#chapter-13">Kubernetes 手冊</a>。</p>
+<h2>擴縮容與故障恢復</h2>
+<p>增加 worker replicas 後，先等待 worker ready，再於無工作期間重建 API Pod，讓其取得重新渲染的 SANDBOX_ENDPOINTS。減少 replicas 前，先清理最高 ordinal 的所有 bindings／sessions；不做跨 worker 自動搬移。API 不可直接增為多副本。</p>
+<p>Worker 重建後用原 PVC 中的 UID metadata 及 transcript 恢復；重新連線才重建 Pi process，不會延續原程序記憶體。若 worker／PVC 遺失，MongoDB 路由本身無法還原檔案。備份應協調 MongoDB、API history 與 worker PVCs；本專案沒有自動 backup controller 或一致性 snapshot 工具。</p>
+</article>
+<article class="doc" id="chapter-2" aria-label="Agent、session 與執行架構"><div class="source">SOURCE / docs/architecture/runtime.md</div><h1>Agent、session 與執行架構</h1>
+<h2>識別與所有權</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>識別</th>
+<th>用途</th>
+<th>儲存／存活範圍</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>agent_id</td>
+<td>邏輯 Agent 所有權、SDK history key</td>
+<td>MongoDB agents；API history</td>
+</tr>
+<tr>
+<td>session_id</td>
+<td>指定 Pi 對話與工作目錄</td>
+<td>MongoDB bindings、worker metadata、session directory</td>
+</tr>
+<tr>
+<td>sandbox_id</td>
+<td>決定 HTTP endpoint／固定 worker</td>
+<td>MongoDB binding；SANDBOX_ENDPOINTS</td>
+</tr>
+<tr>
+<td>RPC request id</td>
+<td>對應 JSONL request／response future</td>
+<td>單個 PiRPC 的記憶體</td>
+</tr>
+<tr>
+<td>Pi toolCallId／entry id</td>
+<td>工具結果與對話分支關聯</td>
+<td>Pi transcript</td>
+</tr>
+</tbody>
+</table></div>
+<p>目前 API_TOKEN 是 sample 共用服務憑證，並非多租戶使用者登入；Agent ownership 防止跨 Agent 誤用 session，但持有共用 token 的 client 不是各自隔離的 tenant。</p>
+<h2>完整 prompt 路徑</h2>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">sequenceDiagram
+    participant Client
+    participant API as API + Agent lock
+    participant SDK as Agents SDK
+    participant Outer as Outer model
+    participant SM as SessionManager
+    participant W as Worker + session lock
+    participant Pi as Pi JSONL RPC
+    participant Model as Pi model
+    participant Py as Python 3.12
+    Client-&gt;&gt;API: POST /agents/{id}/run
+    API-&gt;&gt;SM: ready bindings + ownership
+    API-&gt;&gt;SDK: AgentContext + allowed session IDs + history
+    SDK-&gt;&gt;Outer: prompt + scoped tool schema
+    Outer--&gt;&gt;SDK: run_python_in_sandbox(session_id, prompt)
+    SDK-&gt;&gt;SM: validate current-run authorization
+    SM-&gt;&gt;W: POST /sessions/{id}/prompt
+    W-&gt;&gt;Pi: JSONL prompt
+    Pi--&gt;&gt;W: response accepted (not completed)
+    Pi-&gt;&gt;Model: prompt / skill + tools
+    Model--&gt;&gt;Pi: write / bash tool calls
+    Pi-&gt;&gt;Py: write file, run session venv Python
+    Py--&gt;&gt;Pi: stdout / exit result / files
+    Pi-&gt;&gt;Model: tool results
+    Model--&gt;&gt;Pi: final answer
+    Pi--&gt;&gt;W: agent_end + collected tool evidence
+    W--&gt;&gt;SM: output + tool_results
+    SM--&gt;&gt;SDK: sandbox result
+    SDK-&gt;&gt;Outer: function tool output
+    Outer--&gt;&gt;Client: final answer via API response
+</code></pre></details>
+<p>SDK tool schema 的 session_id enum 只含當次允許的 ready sessions，工具本身再檢查 allowed_sessions，Manager 以 Agent ID 檢查 binding。外層第一次要求工具呼叫；後續可整合答案，<code>parallel_tool_calls=False</code>，<code>max_turns=12</code>。同 Agent 請求序列化；不同 Agent 可並行。這不是背景 job queue，HTTP client 必須等待執行結果。</p>
+<h2>配置、保留與 cleanup</h2>
+<p>建立 session 時，Manager 從健康 worker 選擇目前 binding count 最少者（或指定 sandbox），先寫 allocating binding，再呼叫 worker idempotent PUT。Worker 在 allocation lock 下檢查 MAX_SESSIONS、配置 UID slot／目錄、啟動 Pi。成功後改 ready；結果不確定時保留 ID 與路由以便 reconnect／DELETE。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>狀態</th>
+<th>允許的操作與恢復方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>allocating</td>
+<td>reconnect 或 DELETE；尚不能 prompt</td>
+</tr>
+<tr>
+<td>ready</td>
+<td>prompt、resources、packages、retention、DELETE</td>
+</tr>
+<tr>
+<td>deleting</td>
+<td>禁止 prompt／reconnect；刪除可重試</td>
+</tr>
+<tr>
+<td>binding 不存在</td>
+<td>worker 刪除成功後移除；後續 session 查詢 404</td>
+</tr>
+</tbody>
+</table></div>
+<p>managed 不會閒置到期；ephemeral 預設 TTL 3600 秒。API 每 60 秒選取過期與 pending-delete bindings，取得 Agent lock 後再驗證，worker 再確認未 busy／未最近活動，停止 namespace、移除檔案與本地 row 後才刪 MongoDB binding。失敗保留 deleting，後續重試。MongoDB 沒有 TTL index。</p>
+<p>Pi process 暫停是另一條生命週期：worker 預設 300 秒 idle 即 disconnect，保留所有持久化資料與 session 名額；binding 仍可 ready。下次操作重新啟動 Pi 並載入同一 transcript。<code>SESSION_CLEANUP_INTERVAL_SECONDS=0</code> 停用 API 與 worker 背景 sweeps；手動 cleanup API 仍可使用。詳見 <a href="#chapter-9">Session lifecycle</a>。</p>
+<h2>雙層模型連線</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>層</th>
+<th>Base URL／key／model</th>
+<th>Transport 選擇</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>外層 SDK</td>
+<td>OPENAI_BASE_URL／OPENAI_API_KEY／OPENAI_MODEL</td>
+<td>未指定 mode：有自訂 URL 用 chat_completions，否則 responses</td>
+</tr>
+<tr>
+<td>Pi</td>
+<td>PI_BASE_URL／PI_API_KEY／PI_MODEL</td>
+<td>未指定 URL 與 mode 時用內建 openai provider；有自訂 transport 時預設 chat_completions</td>
+</tr>
+<tr>
+<td>Helm</td>
+<td>api.* 與 sandbox.*</td>
+<td>values 明確設 mode，覆蓋程式的推導行為</td>
+</tr>
+</tbody>
+</table></div>
+<p>兩個端點可以完全不同。Compose 的 Pi key 空值會 fallback 到 OPENAI_API_KEY；公司部署應明確分開設定，Helm worker 只取得 PI_API_KEY。Pi 自訂 provider models.json 保存 <code>$PI_API_KEY</code> 參照而非 literal secret，並支援 context window、max tokens 與 compat 選項。設定錯誤不會自動 fallback 到 public endpoint。這裡指 OpenAI-compatible 模型協定，不是只有 OpenAPI schema 就足夠；gateway 需支援所選 transport、tools 與 Pi 所需的 streaming。設定細節見 <a href="#chapter-11">configuration</a>。</p>
+<h2>Skills、extensions 與 packages</h2>
+<p>Bootstrap 在 session UID／namespace 內複製 image seeds；skills、extensions 進入 HOME，package sources 進入 /workspace/packages。每個 session 自己管理 settings、安裝清單與 npm cache。</p>
+<p>Skill 是模型指令，不是自動執行成功的證據。Extension 可註冊模型工具、headless commands 與 audit hooks。Pi package 可同時帶 extensions、skills、prompts、Python helpers；本機 stats-kit 安裝後提供 python_stats tool 與 /package-stats command。Package install/remove 先停止 Pi，再在相同隔離環境執行 CLI，成功後載入原 transcript；失敗不保證回滾。</p>
+<p>一般 prompt 等 agent_end 才完成；原生 extension command 若 handler 結束且未啟動模型，支援不經 agent_end 的回傳路徑。此 RPC client 未實作互動對話框；extension 不應把任意文字直接印到 JSONL stdout。詳見 <a href="#chapter-7">resources</a>。</p>
+<h2>錯誤與證據</h2>
+<p>PROMPT_TIMEOUT 預設 180 秒，Manager HTTP timeout 為其值 + 60 秒、connect 5 秒。Worker prompt timeout／取消會 disconnect Pi。外層 OpenAI client max_retries=0；不要在 HTTP 結果不確定時重送 prompt，它可能已寫檔或執行副作用。</p>
+<p>RPC 回應證據有界：最多 32 個 tool results、每個序列化結果 8000 字元、output 32000 字元；完整原生 transcript 在 session state，但原生工具也可能截斷輸出。大量結果應寫成 artifacts。</p>
+<p>應用 tracing 將 HTTP request、outer history、sandbox_results、Pi transcript、extension audit 與實際檔案交叉核對；沒有跨層統一 trace ID、逐 delta 保存或 syscall tracing。OPENAI_AGENTS_DISABLE_TRACING=1 不影響這些本地證據。Token ledger 分開計算 outer SDK 與 Pi，cached input 只計一次，缺失 usage 不當成 0；collect 既有 transcript 得到的是累積值。完整重跑方式見 <a href="#chapter-10">驗證手冊</a>。</p>
+</article>
+<article class="doc" id="chapter-3" aria-label="Sandbox 隔離、資源與信任邊界"><div class="source">SOURCE / docs/architecture/security.md</div><h1>Sandbox 隔離、資源與信任邊界</h1>
+<h2>Session environment overview</h2>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">flowchart TB
+    API[API · SANDBOX_TOKEN] --&gt; W[Root worker supervisor · HTTP + UID metadata]
+    W --&gt;|drop UID/GID + bwrap| A[Session A · UID 10000 + slot A]
+    W --&gt;|drop UID/GID + bwrap| B[Session B · UID 10000 + slot B]
+    A --&gt; PA[Pi + Python · private PID / mount / IPC / UTS]
+    B --&gt; PB[Pi + Python · private PID / mount / IPC / UTS]
+    A --- DA[private workspace / HOME / venv / tmp]
+    B --- DB[private workspace / HOME / venv / tmp]
+    RO[read-only image: /usr /opt/pi /opt/pi-resources /opt/python-runtime]
+    RO -.-&gt; A
+    RO -.-&gt; B
+    NET[shared container / Pod network]
+    A --&gt; NET
+    B --&gt; NET
+</code></pre></details>
+<p>每個 worker 有自己的 UID slot registry；有效 slot 1..55535，UID=10000+slot。session root 由 supervisor 擁有，data 目錄由該 UID 擁有；生成程式不能替換 bind-mount source。Session 中的 <code>/workspace</code> 對應 worker 的 <code>/sessions/&lt;session-id&gt;/data</code>。</p>
+<h2>隔離與可見性矩陣</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>資源</th>
+<th>Session A 對自己的存取</th>
+<th>對 Session B／supervisor 的存取</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>workspace、HOME、venv</td>
+<td>可寫，持久化</td>
+<td>sibling directories 不掛載，UID 不同</td>
+</tr>
+<tr>
+<td>/tmp、/run、/proc、/dev</td>
+<td>個別 tmpfs／namespace 視圖</td>
+<td>不共享 PID namespace／tmpfs</td>
+</tr>
+<tr>
+<td>/usr、/opt/pi、resource seeds、Python inventory</td>
+<td>唯讀共享</td>
+<td>不可改 image libs</td>
+</tr>
+<tr>
+<td>/opt/server、worker /state、API history</td>
+<td>不掛載</td>
+<td>無法經 session filesystem 存取</td>
+</tr>
+<tr>
+<td>網路</td>
+<td>共用 container／Pod network</td>
+<td>沒有 per-session network namespace 或 policy</td>
+</tr>
+<tr>
+<td>Pi model key</td>
+<td>該 session env 可讀</td>
+<td>不注入 API_TOKEN、SANDBOX_TOKEN、MongoDB credentials</td>
+</tr>
+<tr>
+<td>CPU／memory</td>
+<td>與其他 sessions 共用 container／Pod 配額</td>
+<td>沒有 per-session cgroup 配額</td>
+</tr>
+</tbody>
+</table></div>
+<p>Bootstrap、extension、package hooks、生成 Python 全部在 session UID／Bubblewrap 裡運行。Supervisor 使用 root 只為配置與降權；不是讓 root 直接執行模型生成程式。關閉 namespace init／process group 會清理其子程序，刪除檔案及 metadata 後才可重用 UID slot。</p>
+<h2>Linux／Kubernetes 前提</h2>
+<p>Compose 允許 nested namespace 所需 syscalls，使用 seccomp／AppArmor unconfined、systempaths unconfined，保留 no-new-privileges 並只加入 SETUID、SETGID、CHOWN、DAC_OVERRIDE、KILL capabilities；不使用 privileged 或 Docker socket。</p>
+<p>Helm worker 需要 Pod user namespaces (<code>hostUsers:false</code>) 且允許 nested Bubblewrap。API 使用非 root 與 RuntimeDefault seccomp；worker 的 Unconfined／Unmasked 設定可能被公司 admission 拒絕，必須依 <a href="#chapter-13">Kubernetes 手冊</a> 驗證節點／runtime／CSI。不允許隔離失敗後降級成未隔離執行。</p>
+<p>這個模型提供同 worker 的檔案與程序隔離，仍共享 kernel、網路及資源池。任意第三方 extension／package 可使用 session model key 並連往允許的網路；不能視為不可信多租戶的完整安全平台。API／worker service token 需由部署邊界保護，HTTP 服務間目前沒有 mTLS，Chart 沒有 TLS ingress。</p>
+<h2>Python 與資源安裝</h2>
+<p>Image build 使用 uv.lock export sandbox group，以 uv pip 或 pip 搭配 hashes 預先安裝 Python 3.12 application packages。目前有 numpy、rich、requests、minio；sqlite3 為標準函式庫。/opt/server 是 supervisor 專用環境，不掛入 sessions。</p>
+<p>每個 session 使用 Python 3.12 venv --system-site-packages，讀取 image libs，也可在自己的 venv 安裝已有的本機 wheel。預設 PIP_NO_INDEX=1、PIP_REQUIRE_VIRTUALENV=true、UV_OFFLINE=true、UV_PYTHON_DOWNLOADS=never；缺套件時更新 image，不能依賴 runtime public pip index。Pi/npm/git 遠端來源並非由這些 Python flags 阻擋，需以 Pod egress policy 管理。</p>
+<p>Build 產生 packages.json 與 SYSTEM.md；Pi 透過 append-system-prompt 得知預裝套件，bootstrap 另產生該 session 的有效 inventory。已建立的 session resources 是可寫副本，更新 image 不會覆寫既有修改。詳見 <a href="#chapter-8">Python packages</a>。</p>
+<h2>資源回收與邊界</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>限制</th>
+<th>設定／實作</th>
+<th>範圍</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session 名額</td>
+<td>MAX_SESSIONS，預設 8</td>
+<td>worker；暫停也占名額</td>
+</tr>
+<tr>
+<td>Process／FD／file</td>
+<td>RLIMIT_NPROC 128、NOFILE 256、FSIZE 128 MiB、CORE 0</td>
+<td>session 子程序繼承；不是整體磁碟 quota</td>
+</tr>
+<tr>
+<td>Container 資源</td>
+<td>Compose limits／Helm resources</td>
+<td>所有 sessions 共享</td>
+</tr>
+<tr>
+<td>閒置程序</td>
+<td>PI_IDLE_DISCONNECT_SECONDS，預設 300 秒</td>
+<td>暫停 Pi，資料保留</td>
+</tr>
+<tr>
+<td>閒置 session</td>
+<td>ephemeral TTL + cleanup</td>
+<td>完整停止並刪除 session data</td>
+</tr>
+</tbody>
+</table></div>
+<p>RLIMIT_FSIZE 限制單檔，不阻止多個小檔耗盡 volume。PVC 容量與 Pod memory 是總體邊界；本版沒有每 session disk quota、hard token budget、工作排程公平性或自動擴容。縮容前需清掉目標 ordinal 的資料與 bindings；保留證據需先 collect，cleanup 不會自動備份。</p>
+</article>
+<article class="doc" id="chapter-4" aria-label="架構決策與演進方向"><div class="source">SOURCE / docs/architecture/decisions.md</div><h1>架構決策與演進方向</h1>
+<p>以下記錄目前採用的設計，不代表已實作所有後續選項。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>決策</th>
+<th>理由與代價</th>
+<th>未來擴展前提</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SDK coordinator + Pi coding runtime</td>
+<td>外層負責委派與整合，Pi 負責寫碼／工具；有兩層模型 latency 與 token 成本</td>
+<td>保留分層 usage 與 execution evidence</td>
+</tr>
+<tr>
+<td>單 API process</td>
+<td>Agent lock、SDK SQLite history、cleanup 協調在同 process</td>
+<td>多副本前先做 distributed leases／fencing、shared history、conditional writes</td>
+</tr>
+<tr>
+<td>固定 session → worker</td>
+<td>工作目錄、UID 與 transcript 在該 worker storage</td>
+<td>搬移需明確 drain、資料轉移與路由切換協定</td>
+</tr>
+<tr>
+<td>MongoDB agents + bindings</td>
+<td>持久化路由及生命週期，Pydantic 明確定義 documents</td>
+<td>完整 schema evolution、分頁、batch cleanup 與負載測試</td>
+</tr>
+<tr>
+<td>同步 PyMongo + to_thread</td>
+<td>driver thread-safe pool，避免阻塞 event loop；取消需等正在執行的 DB operation</td>
+<td>量測 thread pool、DB latency 與壅塞後再選 async driver</td>
+</tr>
+<tr>
+<td>Worker 確認刪除後才刪 binding</td>
+<td>保留 ownership／路由以重試；DB 與 HTTP 非原子 transaction</td>
+<td>大規模 reconciliation／audit 可再持久化</td>
+</tr>
+<tr>
+<td>Pi process 可暫停、session 可保留</td>
+<td>長駐 Pod 減少 idle memory；恢復需重新 bootstrap／載入對話</td>
+<td>量測 resume latency 與磁碟用量</td>
+</tr>
+<tr>
+<td>UID + Bubblewrap</td>
+<td>多 session 共享 image，隔離可寫檔與程序；不隔離網路與 kernel</td>
+<td>高信任差異 workloads 考慮獨立 Pod／VM 邊界</td>
+</tr>
+<tr>
+<td>Image 預裝 Python 與 resources</td>
+<td>runtime 無外網仍能寫碼與執行；image 更新成本較高</td>
+<td>鎖版、供應鏈審查與內部 image promotion</td>
+</tr>
+<tr>
+<td>原生 Pi packages</td>
+<td>保留 Pi skills/extensions/prompts 行為；安裝 hooks 是程式碼</td>
+<td>公司 package catalog 與來源政策</td>
+</tr>
+<tr>
+<td>OnDelete + Retain</td>
+<td>避免升級／縮容意外丟失活動 session</td>
+<td>平台需要人工或額外 controller 做 drain／更新</td>
+</tr>
+<tr>
+<td>持久化應用 tracing</td>
+<td>可以交叉核對工具與檔案；不是全量 system trace</td>
+<td>統一 trace ID、OTel、監控 backend 都尚未提供</td>
+</tr>
+</tbody>
+</table></div>
+<h2>故障處理契約</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>故障</th>
+<th>保留什麼</th>
+<th>操作方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MongoDB 不可達</td>
+<td>worker 上既有檔案與程序可能仍在</td>
+<td>恢復 DB，觀察 readiness；不要重送不確定 prompt</td>
+</tr>
+<tr>
+<td>Worker 不可達</td>
+<td>binding 與原 sandbox_id</td>
+<td>恢復同 worker／PVC，或明確 DELETE 重試</td>
+</tr>
+<tr>
+<td>Pi timeout／異常</td>
+<td>transcript／已寫檔可能已存在</td>
+<td>查看證據、reconnect；沒有自動 prompt 重試</td>
+</tr>
+<tr>
+<td>Package CLI 或 reload 失敗</td>
+<td>設定／檔案可能已部分改變</td>
+<td>查詢實際 package 狀態，修復後 reload</td>
+</tr>
+<tr>
+<td>API 重啟</td>
+<td>MongoDB registry + history</td>
+<td>重新建立 pools／locks，重啟 cleanup</td>
+</tr>
+<tr>
+<td>Worker 重啟</td>
+<td>UID metadata + session data</td>
+<td>按需載入相同 session；不恢復程序記憶體</td>
+</tr>
+<tr>
+<td>PVC 遺失</td>
+<td>MongoDB 只剩路由 metadata</td>
+<td>從協調好的備份恢復；不自動換 worker</td>
+</tr>
+</tbody>
+</table></div>
+<h2>尚未提供的服務</h2>
+<p>專案沒有 message broker、job scheduler、MongoDB operator、Vault operator、Ingress controller、MinIO server、metrics collector 或 tracing backend。不要把已安裝 Python SDK／client library 當成已有相對應的服務。公司需要的服務、TLS、監控、備份與 image registry 由平台整合。</p>
+<h2>文件與版本維護</h2>
+<p>修改 endpoint／env／volume／lock／資料模型時，同步更新相關 Markdown 與 topology.json，再執行 make docs、make docs-check。HTML 只含文件與設定名稱，不打包真實 .env、session artifacts 或 credentials。</p>
+</article>
+<article class="doc" id="chapter-5" aria-label="MongoDB schema 與 index design"><div class="source">SOURCE / docs/mongodb-schema.md</div><h1>MongoDB schema 與 index design</h1>
+<p>本文件描述預設 database <code>pi_agents</code>。Database 名稱由 <code>MONGODB_DATABASE</code> 設定。可執行的 document schema 來源是 <a href="../orchestrator/documents.py"><code>orchestrator/documents.py</code></a>，index 建立位置是 <a href="../orchestrator/registry.py"><code>MongoRegistry.initialize</code></a>。架構與生命週期見 <a href="#chapter-6">registry 架構設計</a>，部署／憑證見 <a href="#chapter-12">MongoDB 操作手冊</a>。</p>
+<h2>Collection 關係</h2>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">erDiagram
+    agents ||--o{ bindings : owns
+    agents {
+        string _id PK
+    }
+    bindings {
+        string _id PK
+        string agent_id FK
+        string sandbox_id
+        string status
+        string retention
+        int idle_ttl_seconds
+        double created_at
+        double last_activity
+        double expires_at &quot;nullable&quot;
+    }
+
+</code></pre></details>
+<p><code>agent_id</code> 是邏輯關聯，不是 MongoDB foreign key。Session Manager 配置前確認 Agent 存在，所有 session API 以 Agent ID 限定 binding；MongoDB 不提供跨 collection FK 或 cascade delete。Worker 的檔案與 UID metadata 不存進這些 documents。</p>
+<h2>1. agents — AgentDocument</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>BSON／Python</th>
+<th>必填</th>
+<th>規則與用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_id</code></td>
+<td>string／str</td>
+<td>是</td>
+<td>唯一 Agent ID；API 產生 UUID 字串</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-json">{&quot;_id&quot;:&quot;be710040-96c6-48a2-a3ca-27b60884feb4&quot;}
+</code></pre>
+<p>Document model 要求非空、無空白的 string IDs；對外 FastAPI path 要求 UUID。MongoDB ObjectId 不是此專案的 ID 格式。此 collection 不含對話、模型 key 或 Agent 執行鎖。建立時沒有額外的隱含時間欄位。</p>
+<h2>2. bindings — BindingDocument</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>BSON／Python</th>
+<th>必填</th>
+<th>規則與用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_id</code></td>
+<td>string／str</td>
+<td>是</td>
+<td>session ID，MongoDB 原生唯一鍵</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>string／str</td>
+<td>是</td>
+<td>不可變的所有權關聯</td>
+</tr>
+<tr>
+<td><code>sandbox_id</code></td>
+<td>string／str</td>
+<td>是</td>
+<td>不可變的 worker 身分；對應 SANDBOX_ENDPOINTS key</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>string／Literal</td>
+<td>是</td>
+<td><code>allocating</code>、<code>ready</code>、<code>deleting</code></td>
+</tr>
+<tr>
+<td><code>retention</code></td>
+<td>string／Literal</td>
+<td>是</td>
+<td><code>managed</code> 或 <code>ephemeral</code></td>
+</tr>
+<tr>
+<td><code>idle_ttl_seconds</code></td>
+<td>integer／int</td>
+<td>是</td>
+<td>非負整數；不接受 bool 或字串轉型</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>double／float</td>
+<td>是</td>
+<td>新資料為建立時間 Unix 秒；不可變，亦用於排序</td>
+</tr>
+<tr>
+<td><code>last_activity</code></td>
+<td>double／float</td>
+<td>是</td>
+<td>最近完成 connect／prompt／resource 操作的 Unix 秒</td>
+</tr>
+<tr>
+<td><code>expires_at</code></td>
+<td>double 或 null／float | None</td>
+<td>是，可 null</td>
+<td>ephemeral 的清理門檻，managed 固定 null</td>
+</tr>
+</tbody>
+</table></div>
+<p>所有時間數值都要求非負且有限，不接受 NaN／Infinity。這些欄位使用數字秒，<strong>不是 BSON Date</strong>。既有 numeric integer 時間能讀取為 float。</p>
+<pre><code class="language-json">{
+  &quot;_id&quot;:&quot;7c2a909a-079b-46d9-9a36-cc79a8a36073&quot;,
+  &quot;agent_id&quot;:&quot;be710040-96c6-48a2-a3ca-27b60884feb4&quot;,
+  &quot;sandbox_id&quot;:&quot;demo-pi-workers-0&quot;,
+  &quot;status&quot;:&quot;ready&quot;,
+  &quot;retention&quot;:&quot;ephemeral&quot;,
+  &quot;idle_ttl_seconds&quot;:3600,
+  &quot;created_at&quot;:1780000000.0,
+  &quot;last_activity&quot;:1780000100.0,
+  &quot;expires_at&quot;:1780003700.0
+}
+</code></pre>
+<p>跨欄位規則：</p>
+<ul>
+<li>managed：<code>idle_ttl_seconds == 0</code> 且 <code>expires_at is None</code>。</li>
+<li>ephemeral：TTL 必須大於 0，且 <code>expires_at == last_activity + idle_ttl_seconds</code>，浮點絕對誤差允許 1e-6 秒。</li>
+<li>Model 不判斷欄位之間的歷史先後或是否已到期；清理時才比較目前時間，避免把合法的過期 document 判成壞資料。</li>
+<li><code>deleting</code> 表示已要求刪除或刪除結果尚未確認，不代表檔案一定消失。這時禁止 reconnect／prompt，保留記錄供重試。</li>
+</ul>
+<p>不保存 prompt、生成程式、token ledger、模型 key、MongoDB URI、程序 handle 或目錄內容。這些資料有各自的儲存／權限邊界。</p>
+<h2>3. Pydantic 邊界與更新規則</h2>
+<p>所有 models 使用 strict mode、<code>extra='forbid'</code>、不可變 instance、禁止非有限數值；錯誤字串隱藏輸入值。Python 屬性 <code>id</code> 對應 MongoDB alias <code>_id</code>。</p>
+<pre><code class="language-python">from orchestrator.documents import BindingDocument, BindingUpdate
+
+stored = {
+    &quot;_id&quot;: &quot;session-a&quot;, &quot;agent_id&quot;: &quot;agent-a&quot;, &quot;sandbox_id&quot;: &quot;sandbox-1&quot;,
+    &quot;status&quot;: &quot;ready&quot;, &quot;retention&quot;: &quot;managed&quot;, &quot;idle_ttl_seconds&quot;: 0,
+    &quot;created_at&quot;: 10.0, &quot;last_activity&quot;: 20.0, &quot;expires_at&quot;: None,
+}
+document = BindingDocument.model_validate(stored)
+assert document.to_mongo()[&quot;_id&quot;] == &quot;session-a&quot;
+assert document.public()[&quot;id&quot;] == &quot;session-a&quot;  # API 相容格式
+updated = BindingUpdate(
+    retention=&quot;ephemeral&quot;, idle_ttl_seconds=10, expires_at=30.0,
+).apply(document)
+</code></pre>
+<p><code>BindingUpdate</code> 只接受 status、retention、idle_ttl_seconds、last_activity、expires_at。未提供欄位表示不變；明確 null 僅允許 expires_at。<code>id/_id</code>、agent_id、sandbox_id、created_at 不可修改。</p>
+<p>更新時先讀現有 BindingDocument，套用 patch 並重新驗證完整 document，再發送 <code>$set</code>（不 replacement、不 upsert）。因此不能只將 retention 改成 ephemeral 而忘記 TTL／expiration，也不能任意換掉路由。整筆 document 驗證不使用 <code>model_copy(update=...)</code>，因為該方法不驗證更新值。</p>
+<p>此驗證是 <strong>Python application 層</strong>，目前沒有安裝 MongoDB <code>$jsonSchema</code> validator。直接透過 mongosh／其他 client 寫入仍可能繞過驗證。逐筆讀取（含 list／cleanup candidates）遇到不合法 document 會回一般化 503，不默默忽略欄位或套預設；aggregate counts 只計算分組，不載入每筆完整 model。遇到壞資料時需由管理者盤點修復，不應跳過檢查繼續清理。</p>
+<p>可用 <code>BindingDocument.model_json_schema(by_alias=True)</code> 檢視欄位 JSON Schema，但 <code>model_validator</code> 的跨欄位規則不會完整轉成 JSON Schema，不能把它直接視為等價 MongoDB server validator。</p>
+<h2>4. Index design</h2>
+<p><code>initialize()</code> 可重複執行；不使用 TTL、稀疏或 partial indexes。除 MongoDB 自動建立的 <code>_id_</code> 外，目前由 API 建立以下 indexes：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Collection／index 名稱</th>
+<th>Keys（皆 ascending）</th>
+<th>Unique</th>
+<th>對應查詢與理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>agents／<code>_id_</code></td>
+<td><code>_id</code></td>
+<td>是</td>
+<td>Agent 存在檢查；不需要第二個 id index</td>
+</tr>
+<tr>
+<td>bindings／<code>_id_</code></td>
+<td><code>_id</code></td>
+<td>是</td>
+<td>session 定位、更新、刪除；加上 agent_id 條件仍最多檢查一筆</td>
+</tr>
+<tr>
+<td>bindings／<code>agent_id_1_created_at_1__id_1</code></td>
+<td>agent_id, created_at, _id</td>
+<td>否</td>
+<td>指定 Agent，依 created_at 與 _id 排序列出 sessions；_id 是同時間的排序 tie-breaker</td>
+</tr>
+<tr>
+<td>bindings／<code>sandbox_id_1</code></td>
+<td>sandbox_id</td>
+<td>否</td>
+<td>worker 分組／營運查詢；目前 counts 使用全 collection <code>$group</code></td>
+</tr>
+<tr>
+<td>bindings／<code>status_1</code></td>
+<td>status</td>
+<td>否</td>
+<td>找出所有 deleting bindings，供失敗後重試</td>
+</tr>
+<tr>
+<td>bindings／<code>retention_1_expires_at_1</code></td>
+<td>retention, expires_at</td>
+<td>否</td>
+<td>retention 等值 ephemeral，expires_at 範圍 <code>&lt;= now</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>查詢形狀：</p>
+<pre><code class="language-javascript">// Agent 的 session 列表：等值 prefix + 完整排序。
+db.bindings.find({agent_id: &quot;agent-a&quot;}).sort({created_at: 1, _id: 1})
+// 所有權：唯一 _id 定位，再檢查 agent_id，不需再建 (_id, agent_id)。
+db.bindings.findOne({_id: &quot;session-a&quot;, agent_id: &quot;agent-a&quot;})
+// 清理候選：兩個分支分別有對應 index。
+db.bindings.find({$or: [
+  {status: &quot;deleting&quot;},
+  {retention: &quot;ephemeral&quot;, expires_at: {$lte: 1780003700.0}}
+]})
+// 負載估算，不是容量 lease／原子預留。
+db.bindings.aggregate([{$group: {_id: &quot;$sandbox_id&quot;, count: {$sum: 1}}}])
+</code></pre>
+<p>索引可供 planner 選擇，不保證在所有資料分布下使用 IXSCAN；counts 仍需處理整個集合，不能宣稱有 sandbox index 就是 O(1)。應使用實際資料的 <code>explain('executionStats')</code> 檢查 scanned documents、排序與 latency，再決定是否需要 counters／分頁／batch cleanup。</p>
+<p>舊版的 <code>agent_id_1_created_at_1</code> index 不能完整提供 <code>_id</code> tie-breaker 排序。本版新增三欄 index，但<strong>不自動刪除舊 index</strong>。既有 DB 升級後可能同時保留兩者，帶來額外儲存與寫入成本；平台確認新 index 已建好、所有讀取端已升級且 explain 符合預期後，再於維護流程移除舊 prefix index。不要刪除 <code>_id_</code> 或把 expires_at 改成 TTL index。</p>
+<h2>5. 為何不使用 MongoDB TTL index</h2>
+<p>MongoDB 的自動 TTL 刪 document 不會等待 Pi 停止、檔案清理，也不會取得 Agent／worker lock。若先移除 binding，API 便失去路由／所有權資訊，worker 可能繼續占用程序、磁碟與 session 名額。因此 expires_at 僅為 <strong>應用清理候選查詢值</strong>；成功刪除 worker 後才呼叫 registry delete。完整流程見 <a href="#chapter-6">架構設計</a>。</p>
+<h2>6. 相容性與測試</h2>
+<p>Document 形狀與目前 MongoDB registry 相容，不新增必填版本欄位、不更換 ID 型別。新增未知欄位需要同步升級 model 與讀取端；extra forbid 是刻意的 fail-closed 行為。未來變更欄位應規劃 reader compatibility、資料 migration 與回滾，不能直接在正式 DB 任意改 document。</p>
+<p><code>tests/test_documents.py</code> 驗證 BSON/API round-trip、strict types、過期規則、immutable fields、patch、讀取壞資料，以及 indexes keys／沒有 TTL。<code>make test-mongodb</code> 也會使用真正 MongoDB 執行 repository 與 index 測試。</p>
+</article>
+<article class="doc" id="chapter-6" aria-label="MongoDB registry 架構設計"><div class="source">SOURCE / docs/mongodb-registry-architecture.md</div><h1>MongoDB registry 架構設計</h1>
+<p>目標是在多個長駐 sandbox 間保存穩定的 Agent → session → worker 路由，並讓 session 保留、清理、API 重啟具有可恢復狀態。本版是 <strong>單 API process + 多 worker</strong>；MongoDB 負責持久化，沒有將程序內鎖變成分散式鎖。</p>
+<h2>元件與責任</h2>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">flowchart LR
+    Client[API client] --&gt; API[FastAPI endpoints]
+    API --&gt; Manager[SessionManager / Agent locks]
+    Manager --&gt; Registry[MongoRegistry / thread boundary]
+    Registry --&gt; Models[Pydantic document validation]
+    Registry --&gt; Mongo[(MongoDB registry)]
+    Manager --&gt; HTTP[HTTP connection pool]
+    HTTP --&gt; W1[Worker 0 / session locks]
+    HTTP --&gt; W2[Worker 1 / session locks]
+    W1 --&gt; Pi1[Isolated Pi processes + PVC]
+    W2 --&gt; Pi2[Isolated Pi processes + PVC]
+    API --&gt; History[(SDK SQLite conversation history)]
+</code></pre></details>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>元件</th>
+<th>責任</th>
+<th>不負責</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>orchestrator/app.py</code></td>
+<td>API 認證、UUID/request schema、取得 Agent lock、startup/readiness/shutdown</td>
+<td>不直接發送 MongoDB query</td>
+</tr>
+<tr>
+<td><code>SessionManager</code></td>
+<td>所有權、worker 選擇、HTTP 呼叫、狀態轉換、TTL、cleanup 協調</td>
+<td>不保存生成程式、不直接操作 worker 檔案</td>
+</tr>
+<tr>
+<td><code>MongoRegistry</code></td>
+<td>PyMongo 連線池、document CRUD、indexes、一般化資料庫錯誤</td>
+<td>不決定 TTL 政策、不重試 prompt、不取得 worker lock</td>
+</tr>
+<tr>
+<td><code>documents.py</code></td>
+<td>typed document 與 update models、序列化、跨欄位驗證</td>
+<td>不提供 foreign key、CAS、distributed lease 或 server validator</td>
+</tr>
+<tr>
+<td>Worker</td>
+<td>本地 UID/活動 metadata、每 session lock、Pi 程序、檔案／namespace 清理</td>
+<td>不取得 MongoDB 憑證、不自行刪除 registry</td>
+</tr>
+</tbody>
+</table></div>
+<p>Collection 欄位、查詢與索引的完整規格見 <a href="#chapter-5">schema／index design</a>。</p>
+<h2>非阻塞 DB 邊界與錯誤</h2>
+<p>Registry 使用一個 thread-safe PyMongo MongoClient，database operations 經 <code>asyncio.to_thread</code> 進入執行緒。FastAPI event loop 可持續處理其他 Agent 的工作；driver server selection／connect／socket timeout 預設 5000ms。這不是整個 request 的 deadline；一個 registry operation 可能包含多個 DB commands。</p>
+<p>取消等待無法停止已開始的 Python thread。因此 <code>database_operation</code> 使用 shield，呼叫端取消時仍等待同步操作結束，再傳遞 CancelledError。這讓上層的 Agent lock 不會先釋放、而 DB 寫入稍後又與清理交錯。shutdown 先停止 cleanup task，等待它結束後再關閉 HTTP pool 與 MongoClient。</p>
+<p>PyMongo 例外轉成 <code>503 MongoDB registry unavailable</code>；讀取 document 驗證失敗轉成 <code>503 Invalid MongoDB registry document</code>，不傳出 URI、原始 driver exception 或損壞的欄位值。程式內寫入資料不符合 models 時拋 ValidationError，應修復呼叫端；不要把 model validation 當作可重試的資料庫斷線。</p>
+<p><code>/health</code> 是程序存活，<code>/ready</code> ping MongoDB。Startup 建立 indexes，再啟動 cleanup。MongoDB 故障時回報錯誤；worker 上的工作可能已經執行，不能因 registry 503 而自動重送 prompt。</p>
+<h2>配置與執行流程</h2>
+<ol>
+<li>API 建立 Agent document。建立 session 前先檢查 Agent 存在。</li>
+<li>SessionManager 從健康 worker 中依 registry count 選擇 worker，或使用 caller 指定的 sandbox ID。Count 是分配參考，worker 的 MAX_SESSIONS 才是本地名額檢查；不是跨 Agent 的原子容量預留。</li>
+<li>先插入 <code>allocating</code> BindingDocument，再呼叫 worker 的 idempotent PUT。</li>
+<li>Worker 成功啟動後更新活動時間與 <code>ready</code>；若網路結果不確定，保留 allocating binding 和原 ID，供明確 reconnect／DELETE。</li>
+<li>Prompt、connect、resource/package API 在 Agent lock 內操作，worker 再取得 session lock。工作完成或失敗後更新活動時間／expires_at。</li>
+<li>對外仍回傳 dict 的 <code>id</code>，DB 使用 <code>_id</code>；此相容邊界由 document model 統一處理。</li>
+</ol>
+<p>MongoDB 與 worker HTTP 之間沒有 distributed transaction。每個狀態都是下一次恢復動作的依據，不是「HTTP 200 一定代表所有外部副作用都可回滾」的保證。</p>
+<h2>Cleanup 流程</h2>
+<details class="source-diagram"><summary>Mermaid 圖原始碼 (互動總覽見頁首)</summary><pre><code class="language-mermaid">sequenceDiagram
+    participant Sweep as API cleanup
+    participant Lock as Agent lock
+    participant DB as MongoRegistry
+    participant Worker as Bound worker
+    Sweep-&gt;&gt;DB: query deleting OR expired ephemeral
+    Sweep-&gt;&gt;Lock: skip busy; acquire available lock
+    Sweep-&gt;&gt;DB: reread current binding + validate
+    Note over Sweep,DB: recheck retention/activity; dry-run stops here
+    Sweep-&gt;&gt;DB: status = deleting
+    Sweep-&gt;&gt;Worker: DELETE with idle_before
+    Worker-&gt;&gt;Worker: check lock + activity; stop Pi; delete files + local metadata
+    alt success
+        Worker--&gt;&gt;Sweep: deleted
+        Sweep-&gt;&gt;DB: delete binding
+    else recently active / busy
+        Worker--&gt;&gt;Sweep: 409
+        Sweep-&gt;&gt;DB: restore prior status + refresh activity
+    else unavailable / uncertain result
+        Worker--&gt;&gt;Sweep: timeout or error
+        Note over Sweep,DB: keep deleting; retry deletion in later sweep
+    end
+</code></pre></details>
+<p>候選清單是 snapshot，不是保留／預約。取得 lock 後再次讀取，可能已被另一輪 cleanup 刪除或更新；此時跳過。單次失敗不應移除 binding；worker DELETE 可重試，prompt 不自動重試。Worker 暫停閒置 Pi 是另一個機制，只釋放程序資源、保留本地資料與 registry 名額。</p>
+<p>Managed sessions 不會因閒置到期刪除；已經明確 DELETE 而留下 deleting 的 managed session，仍會重試完成刪除。API 停止時不清除 registry；worker 仍可暫停閒置程序。孤兒檔案不會被目錄掃描盲目刪除。</p>
+<h2>一致性與並行限制</h2>
+<ul>
+<li>MongoDB <code>_id</code> unique index 防止重複 Agent／session IDs；Pydantic 規範欄位形狀，不取代 unique index。</li>
+<li>BindingUpdate 的 read → validate merged document → <code>$set</code> 不是 MongoDB transaction／CAS。本版依賴所有正式呼叫端持有同一 API process 的 Agent lock。不要從其他 process 或 mongosh 同時修改 lifecycle 欄位。</li>
+<li>只有 <code>$set</code> 的單次 DB command 是 document-level atomic；無跨 documents／collections 的 transaction，也無跨 MongoDB／worker 的 transaction。</li>
+<li>刪除先記錄意圖，worker 確認後才刪 binding；MongoDB delete 最後失敗時，保留 deleting 可重試 idempotent worker DELETE。</li>
+<li>多 API replicas 需要 shared history backend、distributed leases／fencing、容量預留與狀態條件更新；只換成 MongoDB 不足以支援。</li>
+<li>List／cleanup candidates 目前會載入整個結果，count 使用全 collection aggregation；沒有 pagination、batch limit 或持久化 cleanup audit。應先量測再擴展，不能把現在的 sample 當成無上限 session platform。</li>
+</ul>
+<h2>設定、權限與部署</h2>
+<p>Compose 提供本機 MongoDB；Helm 僅連 external cluster。Vault 將憑證同步到 Kubernetes Secret，Chart 以 env 注入 API；URI／密碼不放 values、不傳入 worker。CA 可用 Secret 掛載。API 帳號需要 registry database 的 readWrite 與 createIndex；不需要 root。</p>
+<p>API StatefulSet 保持一個 replica，worker 使用固定 ordinal DNS 與獨立 PVC。縮容、Secret 輪替、OnDelete 更新仍需先等待工作完成，見 <a href="#chapter-13">Kubernetes 手冊</a>。MongoDB 資料、API SDK history、worker state／sessions 應一起納入一致性備份與恢復計畫。</p>
+<h2>Schema evolution</h2>
+<p>Document models 使用 extra forbid，外部插入的未知欄位會被拒絕。新 schema 部署前應確認資料與讀取端相容，必要時先完成資料修正。</p>
+<h2>測試與可驗證範圍</h2>
+<pre><code class="language-bash">uv run --locked pytest tests/test_documents.py tests/test_registry.py tests/test_manager.py tests/test_lifecycle.py -q
+make check
+make test-mongodb
+make test-container
+</code></pre>
+<p>單元測試包含 model invariants、alias round-trip、partial update、壞 document、index keys、request cancellation、所有權、持久化與 cleanup 競態。<code>test-mongodb</code> 使用真實本機 MongoDB 的獨立測試 databases；<code>test-container</code> 驗證無外網的真實 Pi／隔離流程，但 registry 使用 mock。</p>
+<p>這些測試不代表公司 replica set failover、TLS／Vault lease 輪替、K8s admission／CSI 已完成驗證，也沒有負載壓測、query explain 效能基準或分散式 API 並行保證。</p>
+</article>
+<article class="doc" id="chapter-7" aria-label="Skills、extensions 與 pi packages"><div class="source">SOURCE / docs/resources.md</div><h1>Skills、extensions 與 pi packages</h1>
+<p>Sandbox 使用 pi 的原生資源系統。每個 session 的 <code>HOME</code>、pi settings、已安裝 packages、npm cache 都在自己的 <code>/workspace</code>；相同 worker 裡的 session 不共用可寫資源。</p>
+<h2>一次跑完 demo</h2>
+<pre><code class="language-bash">docker compose up --build -d --wait
+
+# 不需要 API key：查詢 skill、執行 extension、安裝／執行／移除 pi package
+docker compose exec api python scripts/demo_resources.py
+
+# .env 填好 OPENAI_API_KEY 後：額外執行真實 skill 及 Agents SDK → pi 工具流程
+docker compose exec api python scripts/demo_resources.py --live
+</code></pre>
+<p>預設 demo 會清理自己的 sessions。加 <code>--keep</code> 可保留它們及產生的檔案；程式一開始會印出 <code>agent_id</code> 與各 <code>session_id</code>。Package 在 demo 結束前會被移除，<code>--keep</code> 保留的是 session 及 package 原始檔，可以再安裝。</p>
+<p>Demo 建立三個 sessions：兩個在 <code>sandbox-1</code>，一個在 <code>sandbox-2</code>。只在第一個 session 安裝 package，並檢查另外兩個沒有載入它。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>範例</th>
+<th>離線 demo</th>
+<th><code>--live</code> 額外示範</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skill</td>
+<td><code>python-stats/SKILL.md</code></td>
+<td>確認原生 skill command 被發現</td>
+<td><code>/skill:python-stats</code> 展開指令，模型寫入並執行 <code>analysis.py</code></td>
+</tr>
+<tr>
+<td>Extension</td>
+<td><code>session-tools.ts</code></td>
+<td><code>/session-info</code> 回傳 UID、HOME、venv、已載入工具</td>
+<td>模型可呼叫 <code>session_info</code>；<code>tool_result</code> hook 寫 audit log</td>
+</tr>
+<tr>
+<td>Pi package</td>
+<td><code>stats-kit/package.json</code></td>
+<td>真正 <code>pi install</code>、<code>/package-stats</code> 執行 Python、reload 與 <code>pi remove</code></td>
+<td>外層 Agents SDK 委派 pi 使用 package skill 與 <code>python_stats</code> 工具</td>
+</tr>
+</tbody>
+</table></div>
+<p>離線模式會執行真正的 extension handler 與 Python helper，但不會呼叫模型，也不宣稱已驗證模型遵循 skill 的行為。</p>
+<h2>資源位置與生命週期</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>映像內唯讀 seed</th>
+<th>每個 session 的可寫副本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/opt/pi-resources/skills/</code></td>
+<td><code>/workspace/home/.pi/agent/skills/</code></td>
+</tr>
+<tr>
+<td><code>/opt/pi-resources/extensions/</code></td>
+<td><code>/workspace/home/.pi/agent/extensions/</code></td>
+</tr>
+<tr>
+<td><code>/opt/pi-resources/packages/</code></td>
+<td><code>/workspace/packages/</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>這些 seed 的原始檔在 repository 的 <code>sandbox/resources/</code>。啟動時先降成 session UID、進入 Bubblewrap，才執行 <code>bootstrap.py</code> 複製檔案。Supervisor root 不執行 extension、package hook 或 bootstrap 的 session 內容。</p>
+<p>初始化只做一次，以 session HOME 裡的 <code>.sample-resources-v1</code> 標記記錄。重連與 reload 保留使用者對副本的修改，也不會把已移除的 package 自動裝回來。既有舊版 session 在新版 worker 第一次啟動其 pi 程序時也會補上 seed；這不會覆寫已存在的同名檔案或設定。</p>
+<p><code>stats-kit</code> 預設只複製原始碼，需透過 API 或 <code>pi install</code> 安裝才會載入。原生安裝把來源記錄在 <code>/workspace/home/.pi/agent/settings.json</code> 的 <code>packages</code>；npm/git 的下載目錄也留在同一個 session 的 pi user directory。npm cache 與 prefix 都指向 session HOME。</p>
+<p><code>resources/reload</code> 會停止該 session 的 pi 程序，再用原本的 transcript 啟動；因此 HOME、venv、檔案與 pi 對話保留，extension 的記憶體狀態則重新初始化，暫存目錄重建。Package 安裝／移除成功後自動做同樣的 reload。</p>
+<h2>API</h2>
+<p>下列 endpoints 都沿用 <code>Authorization: Bearer &lt;API_TOKEN&gt;</code>，先檢查 session 所屬 Agent，並與該 Agent 的其他操作序列化。Worker 也以 session lock 保護安裝、reload 與 prompt，避免同時修改設定。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Endpoint</th>
+<th>Body</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/agents/{agent_id}/sessions/{session_id}/resources</code></td>
+<td>無</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/agents/{agent_id}/sessions/{session_id}/resources/reload</code></td>
+<td>無</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/agents/{agent_id}/sessions/{session_id}/packages</code></td>
+<td><code>{&quot;action&quot;:&quot;install&quot;,&quot;source&quot;:&quot;/workspace/packages/stats-kit&quot;}</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td>同上</td>
+<td><code>{&quot;action&quot;:&quot;remove&quot;,&quot;source&quot;:&quot;/workspace/packages/stats-kit&quot;}</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/agents/{agent_id}/sessions/{session_id}/pi/prompt</code></td>
+<td><code>{&quot;prompt&quot;:&quot;/session-info&quot;}</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>GET resources</code> 回傳 pi <code>get_commands</code> 的原生清單，以及 <code>pi list</code> 的文字輸出。清單的 <code>source</code> 可以是 <code>skill</code>、<code>extension</code> 或 <code>prompt</code>；工具清單可透過 demo extension 的 <code>/session-info</code> 查詢。</p>
+<p><code>/pi/prompt</code> 是直接呼叫這個 session 的 pi，不經外層 Agents SDK，也不寫入外層 Agent 對話；pi 自己的對話仍會保留。原本的 <code>/agents/{agent_id}/run</code> 流程不變，外層 Agent 的工具同樣可以委派 <code>/skill:...</code> 或 extension 指令給 pi。</p>
+<p>例如，取得 session IDs 後：</p>
+<pre><code class="language-bash">export DEMO_TOKEN=local-demo-change-me  # 與 .env 的 API_TOKEN 一致
+export SESSION_URL=http://localhost:8000/agents/你的agent-id/sessions/你的session-id
+
+curl -fsS &quot;$SESSION_URL/resources&quot; -H &quot;Authorization: Bearer $DEMO_TOKEN&quot;
+
+curl -fsS -X POST &quot;$SESSION_URL/packages&quot; \
+  -H &quot;Authorization: Bearer $DEMO_TOKEN&quot; -H 'Content-Type: application/json' \
+  -d '{&quot;action&quot;:&quot;install&quot;,&quot;source&quot;:&quot;/workspace/packages/stats-kit&quot;}'
+
+curl -fsS -X POST &quot;$SESSION_URL/pi/prompt&quot; \
+  -H &quot;Authorization: Bearer $DEMO_TOKEN&quot; -H 'Content-Type: application/json' \
+  -d '{&quot;prompt&quot;:&quot;/package-stats 2,4,6,8&quot;}'
+</code></pre>
+<p>最後一個請求不需模型，<code>output</code> 是 JSON 字串，包含 <code>mean: 5</code>、<code>count: 4</code> 與 <code>/workspace/venv/bin/python</code>，並將結果寫到該 session 的 <code>/workspace/package-stats.json</code>。</p>
+<h2>加入自己的 skill 或 extension</h2>
+<p>新增到 <code>sandbox/resources/skills/&lt;name&gt;/SKILL.md</code> 或 <code>sandbox/resources/extensions/&lt;name&gt;.ts</code>，重新建置並建立新 session 即可。對已初始化的 session，請透過 pi 在自己的 HOME 寫入／修改檔案，再呼叫 <code>resources/reload</code>；重新建置不會覆寫既有 session 副本。</p>
+<p>Skill 使用標準 <code>name</code>、<code>description</code> frontmatter。Pi 載入描述供模型選用；使用 <code>/skill:&lt;name&gt; 任務內容</code> 可明確要求原生 skill 展開。範例 <code>python-stats</code> 要求 pi 寫程式、執行、儲存 JSON 並回報實際輸出。</p>
+<p>Extension 範例包含三種行為：</p>
+<ul>
+<li><code>registerTool(&quot;session_info&quot;)</code> 提供模型可呼叫的工具。</li>
+<li><code>registerCommand(&quot;session-info&quot;)</code> 提供不需模型的指令，用 <code>pi.sendMessage(..., {triggerTurn:false})</code> 回傳結果。</li>
+<li><code>session_start</code> 寫入 <code>extension-loaded.json</code>；模型工具的 <code>tool_result</code> 事件寫入 <code>extension-audit.jsonl</code>，紀錄工具名、是否錯誤與時間，不記錄完整工具輸入。</li>
+</ul>
+<p>RPC 現在會區分原生 extension command 與需要模型的 skill／一般 prompt。Extension command 若已完成且沒有啟動模型，回傳 <code>kind: &quot;extension_command&quot;</code>，不再永遠等待 <code>agent_end</code>；一般模型流程仍等待 <code>agent_end</code>。這支 sample client 不實作互動對話框：extension 請採用 headless handler，使用 <code>pi.sendMessage</code> 或 <code>ctx.ui.notify</code> 回傳資訊，避免直接向 stdout 印出非 JSONL 內容。需要 UI 選擇／輸入的 extension 可能逾時。</p>
+<h2>加入自己的 pi package</h2>
+<p><code>stats-kit</code> 是完整的本機 package：</p>
+<pre><code class="language-text">stats-kit/
+├── package.json            # pi.extensions / pi.skills / pi.prompts manifest
+├── extensions/stats.ts     # python_stats tool 與 package-stats command
+├── skills/package-stats/SKILL.md
+├── prompts/package-report.md
+└── scripts/stats.py        # 在 session venv 執行並寫結果檔
+</code></pre>
+<p>可以把其他本機 package 放到 <code>sandbox/resources/packages/</code>，重建後建立新 session，再用其 <code>/workspace/packages/...</code> 路徑安裝。原生本機安裝引用該目錄，不會另外複製；不要在仍需使用 package 時刪除其原始碼。</p>
+<p>API 也接受 pi 原生 <code>npm:</code>、<code>git:</code>、HTTPS/HTTP 來源，例如 <code>npm:@your-org/your-package@1.2.3</code>、<code>git:github.com/your-org/your-repo@v1.0.0</code>。這些是來源格式示意，請替換成自己的 package。遠端安裝需要網路；本範例不提供私有 registry token、SSH agent forwarding 或互動登入。相對本機路徑請改成 <code>/workspace/</code> 開頭的絕對路徑。</p>
+<p>只有 <code>install</code>、<code>remove</code> 兩種管理 action；來源是單獨 argv 參數，不會插入 shell 字串。Package 操作有 120 秒上限，失敗或逾時不自動重試，也不承諾 transaction rollback；可先查詢、修正或移除，再 reload。移除 package 會取消載入，保留產生的結果檔與本機原始碼。</p>
+<p>Extensions、package 安裝 hooks 與 helper 都以該 session 的 UID、namespace 與環境執行，仍受原有檔案／程序隔離約束。它們可讀取同一 session 的 OPENAI_API_KEY，且網路仍共用；這不是第三方程式碼的額外權限層。隔離邊界見主 README。</p>
+<h2>測試</h2>
+<pre><code class="language-bash">docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
+docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps -e RUN_ISOLATION_TESTS=1 sandbox-1 \
+  /opt/server/bin/python -m pytest -p no:cacheprovider \
+  tests/test_rpc.py tests/test_worker.py tests/test_isolation.py tests/test_resources.py -q
+</code></pre>
+<p>新測試以真正的 pi CLI 驗證 native discovery、extension 載入、自訂工具清單、無模型指令回傳、本機 package install/remove、Python helper 的執行、不同 session 的資源隔離，以及 reload／worker 重建後的持久化。遠端 npm/git 安裝需網路，未包含在離線測試中。</p>
+<p>驗證結果：API／Agents SDK 測試 6 個通過，worker／RPC／隔離／資源測試 12 個通過；完整 Compose 的離線與 <code>--live</code> 流程均已執行。真實模型成功使用 <code>python-stats</code> skill、<code>session_info</code> extension tool 與 package 的 <code>python_stats</code> tool。整體 demo 的執行證據與用量限制詳見 <a href="../reports/full-sandbox-demo.json">完整驗證報告</a>。</p>
+<p>原生 API 格式參考：<a href="https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md">Pi skills</a>、<a href="https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/extensions.md">Pi extensions</a>、<a href="https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md">Pi packages</a>。實作與容器測試使用固定的 pi <code>0.85.1</code>。</p>
+</article>
+<article class="doc" id="chapter-8" aria-label="離線 sandbox：Python 預裝套件與內部模型端點"><div class="source">SOURCE / docs/python-packages.md</div><h1>離線 sandbox：Python 預裝套件與內部模型端點</h1>
+<p>此模式適用於 K8s Pod 無法連到外部網路、但可連線到公司內部模型 gateway 的環境。套件在 image build 時安裝，pi 執行期間使用 image 既有套件，不下載依賴。</p>
+<h2>1. 指定 image 預裝的 Python 套件</h2>
+<p>編輯 <a href="../pyproject.toml"><code>pyproject.toml</code></a> 的 <code>[dependency-groups].sandbox</code>，再執行 <code>uv lock</code>；或使用 <code>uv add --group sandbox 'package-name==1.2.3'</code>。預設包含：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>套件</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>requests 2.32.5</td>
+<td>HTTP client</td>
+</tr>
+<tr>
+<td>minio 7.2.20</td>
+<td>MinIO Python SDK，<code>from minio import Minio</code></td>
+</tr>
+<tr>
+<td>numpy 2.2.6</td>
+<td>計算範例</td>
+</tr>
+<tr>
+<td>rich 14.0.0</td>
+<td>輸出格式範例</td>
+</tr>
+<tr>
+<td>sqlite3</td>
+<td>Python 3.12 標準函式庫；不用也不應 pip install</td>
+</tr>
+</tbody>
+</table></div>
+<p>套件列表可以換成公司實際需要的項目。requests／MinIO SDK 的預裝不會授予網路權限，也不會自動提供 MinIO 憑證；是否可存取內部服務取決於部署的網路政策與你交給 session 的設定。</p>
+<pre><code class="language-bash"># 手動修改 pyproject.toml 後更新 lock；兩個檔案一起納入 Git
+uv lock
+# 預設由 uv 在建置時安裝
+docker compose build sandbox-1 sandbox-2
+
+# 也可以選用 pip；兩種方式讀取 uv.lock 匯出的同一份含 hashes requirements
+docker compose build --build-arg PYTHON_PACKAGE_INSTALLER=pip sandbox-1 sandbox-2
+
+# 更新本機服務
+docker compose up -d --wait
+</code></pre>
+<p>建置環境需要能取得 base images、npm、PyPI 或公司套件鏡像。新增套件／版本後必須重建並部署新 image。需要 C/C++ 或 OS library 的套件需在 Dockerfile 補上相依套件。不要將 registry token、模型 key 或 MinIO key 寫進 Dockerfile 的 ARG／ENV 或 requirements URL；CI 的認證請使用 BuildKit secrets／公司建置憑證機制。</p>
+<p>直接與傳遞依賴均由 <code>uv.lock</code> 鎖定；Docker 以 <code>--require-hashes</code> 安裝匯出結果，實際版本另保存於 image manifest。若公司要求完整的建置重現性，還需固定 base image digest 與 OS 套件來源。</p>
+<h2>2. venv 與隔離如何運作</h2>
+<p>Image 的應用套件安裝在 <code>/usr/local/lib/python3.12/site-packages</code>；每個 session 使用 <code>--system-site-packages</code> 建立自己的 <code>/workspace/venv</code>。共享的是 <strong>唯讀 image 套件</strong>；每個 session 的 workspace、HOME、venv 本地內容、cache、程序仍獨立。</p>
+<p><code>/usr</code> 與 <code>/opt/python-runtime</code> 以 Bubblewrap 唯讀掛載，session 無法覆寫共享套件。Supervisor 依賴另裝在 <code>/opt/server</code>，不會暴露給 session，也不會混進 pi 的應用套件清單。</p>
+<p>Runtime 設定：</p>
+<ul>
+<li><code>PIP_NO_INDEX=1</code>：pip 預設不查詢 package index。</li>
+<li><code>UV_OFFLINE=true</code>、<code>UV_PYTHON_DOWNLOADS=never</code>：uv 預設不連網或下載 Python。</li>
+<li><code>PIP_REQUIRE_VIRTUALENV=true</code>：pip 必須在 venv 內使用。</li>
+<li>pi system instructions 明確要求只使用預裝依賴；缺少套件時回報名稱，要求修改 pyproject.toml 的 sandbox group、更新 uv.lock 並重建，不重試安裝。</li>
+</ul>
+<p>這些環境變數和提示不是網路安全邊界；任意程式仍可能覆寫變數、用 URL 或其他工具嘗試連線。正式 K8s 環境必須由公司的 CNI／NetworkPolicy 限制外部 egress，並允許必要的內部 DNS、模型 gateway 和業務服務。pip／uv binaries 仍保留供診斷、建置／隔離測試使用；本機 wheel 安裝能力不代表離線部署中建議動態安裝。</p>
+<p>既有 3.12 session 重連時會更新 <code>pyvenv.cfg</code> 以看見共享套件，不重裝或刪除本地套件；本地同名版本可能遮蔽 image 版本，清單會顯示有效版本。為了部署結果一致，建議換 image 時建立新 sessions。既有 3.11 venv 不會自動遷移：先匯出資料、建立 3.12 session，再還原工作檔。</p>
+<h2>3. pi 如何知道哪些套件可以用</h2>
+<p>Build 時執行 <code>sandbox/python_inventory.py</code>，用實際 Python metadata 產生：</p>
+<pre><code class="language-text">/opt/python-runtime/requirements.txt  # 由 uv.lock 匯出的建置輸入
+/opt/python-runtime/packages.json     # 實際版本、傳遞依賴、import 名稱提示、sqlite3 版本
+/opt/python-runtime/SYSTEM.md         # 預裝套件摘要與禁止 runtime 安裝的工作指示
+</code></pre>
+<p>每次 pi 程序啟動時，把 <code>SYSTEM.md</code> 的文字傳入 <code>--append-system-prompt</code>；因此模型在第一次收到 prompt 前就知道套件與政策，不依賴它主動探索檔案。完整 JSON 位置也包含在提示中。</p>
+<p>另用 session 的 Python 產生 <code>/workspace/state/python-packages.json</code>，反映本次啟動時真正可見的版本，包括舊 session 的本地覆蓋。pip distribution 名稱不一定等於 import 名稱，JSON 的 <code>imports</code> 是 metadata 提示，不代表每個 optional extra 都已安裝。執行中若有人手動改變套件，需重連或重新產生清單：</p>
+<pre><code class="language-bash"># 以下指令由 pi 的 bash 工具在 session 中執行
+python /opt/python-runtime/inventory.py
+python -c 'import requests, minio, sqlite3; print(requests.__version__, minio.__version__, sqlite3.sqlite_version)'
+</code></pre>
+<p><a href="#chapter-10"><code>verify_sessions.py collect</code></a> 會自動匯出 <code>state/python-packages.json</code>，供追蹤執行環境。完整套件摘要會增加少量模型輸入 token；大量套件時可依實際需求精簡 image。</p>
+<h2>4. 設定公司內部 OpenAI 相容 gateway</h2>
+<p>每個 <code>.env.example</code> 欄位的選填／必填、預設值、容量與 timeout 建議，集中列在 <a href="#chapter-11">環境變數設定參考</a>；此節著重端點與離線部署方式。</p>
+<p>外層 Agents SDK 和 pi <strong>各自發出模型 HTTP 請求</strong>，必須分別設定。以下 <code>.env</code> 是範例，替換成公司真實的 URL／model，金鑰使用你們的 Secret 管理方式注入：</p>
+<pre><code class="language-dotenv"># 外層 Agents SDK
+OPENAI_BASE_URL=http://coordinator-gateway.models.svc.cluster.local:8000/v1
+OPENAI_API_KEY=replace-with-outer-gateway-key
+OPENAI_MODEL=company-coordinator-model
+OPENAI_API_MODE=chat_completions
+
+# Sandbox 裡的 pi；可以使用不同的端點、key 與 model
+PI_BASE_URL=http://coding-gateway.models.svc.cluster.local:9000/v1
+PI_API_KEY=replace-with-pi-gateway-key
+PI_MODEL=company-coding-model
+PI_API_MODE=chat_completions
+# 必須換成模型／gateway 真實上限；128000 只是 sample 預設
+PI_CONTEXT_WINDOW=128000
+PI_MAX_TOKENS=4096
+</code></pre>
+<p>URL 填 API prefix，例如 <code>/v1</code>，不要包含 <code>/chat/completions</code> 或 <code>/responses</code>。model 必須是 gateway 實際接受的 model ID，不必存在於 pi 內建模型目錄。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>設定</th>
+<th>行為</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*_API_MODE=chat_completions</code></td>
+<td><code>/chat/completions</code>；適合多數相容 gateway</td>
+</tr>
+<tr>
+<td><code>*_API_MODE=responses</code></td>
+<td><code>/responses</code>；只有 gateway 支援時使用</td>
+</tr>
+<tr>
+<td>有 base URL，API mode 留空</td>
+<td>預設 Chat Completions</td>
+</tr>
+<tr>
+<td>base URL 與 API mode 都留空</td>
+<td>保留原本 OpenAI Responses／pi 內建 OpenAI provider</td>
+</tr>
+<tr>
+<td>PI_API_KEY 留空</td>
+<td>沿用 OPENAI_API_KEY；設定 PI_API_KEY 時只把 pi key 送入 session</td>
+</tr>
+</tbody>
+</table></div>
+<p>不會從內部端點失敗後自動切換到公網 OpenAI。base URL 和 mode 在啟動／呼叫時驗證；無效設定報錯。金鑰不放在 pi argv 或清單內；pi 的 <code>models.json</code> 使用 <code>$PI_API_KEY</code> 環境變數參照。</p>
+<p>pi 啟動時會建立／更新保留名稱 <code>sandbox-openai</code> 的 provider，保留其他 providers；不要手動在這個名稱下維護設定。重新載入程序時更新 endpoint／model 設定；改 <code>.env</code> 後應重新建立容器以套用環境值，不需重新 build image：</p>
+<pre><code class="language-bash">docker compose up -d --wait
+</code></pre>
+<p>相容 gateway 必須支援 tool/function calling。pi 使用 streaming，因此 gateway 還需支援 SSE tool-call chunks。工具 schema 中的 enum、required 與 SDK 的 JSON schema 參數也必須可接受。不同服務的「OpenAI 相容」程度不同，不能只靠能返回純文字判斷。</p>
+<p>pi 的 Chat Completions 預設使用 <code>system</code> role、<code>max_tokens</code>，不傳 store／reasoning_effort。需要調整時，可設定原生 pi compatibility 選項，例如：</p>
+<pre><code class="language-dotenv">PI_MODEL_COMPAT={&quot;supportsUsageInStreaming&quot;:false}
+</code></pre>
+<p>這個設定適用於不接受 <code>stream_options.include_usage</code> 的 gateway，但可能無法取得 pi 的 token 用量。不能把缺失或回傳的零 usage 視為實際免費；本機驗證帳本不是 gateway 帳單。</p>
+<p>K8s 中透過 Helm values 分別設定 API 與 worker StatefulSet 的 env；API keys 用 <code>secretKeyRef</code>，image 在有網路的 CI 建置後推到內部 registry。多 sandbox Chart 與詳細步驟見 <a href="#chapter-13">Kubernetes 部署手冊</a>。內部 HTTPS 若使用公司 CA，需將 CA 加入 image 信任鏈，並依 Python／Node.js client 設定正確的 CA 檔；不要關閉 TLS 驗證。</p>
+<h2>5. 無外網實際驗證</h2>
+<p>先建置 image，再使用 overlay，將測試 worker 設定為 <code>network_mode: none</code>（只有 loopback）。overlay 僅供測試；正式服務仍需內部網路。</p>
+<pre><code class="language-bash">docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
+docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps \
+  -e RUN_ISOLATION_TESTS=1 sandbox-1 /opt/server/bin/python -m pytest \
+  -p no:cacheprovider tests/test_preinstalled.py tests/test_model_config.py tests/test_gateway.py -q
+</code></pre>
+<p><code>test_preinstalled.py</code> 在兩個真正的 pi sessions 中直接 import 預裝套件，以 numpy 計算 55、sqlite3 執行 SQL，以 requests 準備 HTTP request、建立 MinIO client（不連 MinIO）。檢查 image 套件與 manifest 唯讀、套件提示內容，以及舊 3.12 venv 重連後可見套件。</p>
+<p><code>test_gateway.py</code> 在測試容器 loopback 建立兩個不同 port／URL prefix 的模擬 gateways：真正的 Agents SDK 使用自訂 model、key、base URL 發送委派，真正 pi 接收 SSE tool calls、寫 Python、執行並回傳 42。測試檢查外層與 pi 各自的獨立 URL、Authorization、model、預裝提示與工具結果，確保請求沒有送到另一層的 gateway。這是協定與整合測試，<strong>沒有真實模型推論、沒有付費 token</strong>，也不代表已連到你們公司的 endpoint。</p>
+<p>待部署到公司可存取 gateway 的環境後，可自行執行：</p>
+<pre><code class="language-bash">uv run --locked python scripts/verify_sessions.py verify --output artifacts/internal-gateway-verification
+</code></pre>
+<p>這才會呼叫設定好的模型。gateway 不支援的參數應依錯誤與服務文件調整；切勿為了通過測試而切回外部模型。</p>
+<p>本次驗證：24 項容器測試（包含無外網套件測試與本機 gateway 整合）及 3 項主機工具回歸測試通過；未呼叫付費模型。公司 gateway 的實際連線仍需在你們的網路環境驗證。</p>
+<p>參考：<a href="https://docs.python.org/3.12/library/venv.html">Python 3.12 venv</a>、<a href="https://docs.astral.sh/uv/guides/integration/docker/">uv Docker</a>、<a href="https://developers.openai.com/api/docs/guides/agents">OpenAI Agents</a>。Pi 配置依 image 內 <code>@earendil-works/pi-coding-agent/docs/models.md</code> 的 0.85.1 文件實作。</p>
+</article>
+<article class="doc" id="chapter-9" aria-label="Session 保留、自動清理與 Pi 程序暫停"><div class="source">SOURCE / docs/session-lifecycle.md</div><h1>Session 保留、自動清理與 Pi 程序暫停</h1>
+<p>此功能適用於長時間運作的 worker Pods。Pod 本身不因 session 結束而重建；一個 Pod 能同時保留多個獨立 session。</p>
+<h2>兩種保留策略</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>retention</th>
+<th>預設 TTL</th>
+<th>閒置後行為</th>
+<th>適用情境</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>managed</code>（建立時預設）</td>
+<td>無</td>
+<td>保留檔案與 metadata，直到明確 DELETE</td>
+<td>需要持續工作、保留證據的 session</td>
+</tr>
+<tr>
+<td><code>ephemeral</code></td>
+<td>3600 秒</td>
+<td>TTL 到期後停止程序，刪除 session 目錄、worker 記錄與 API binding</td>
+<td>一次性工作／可重新產生的資料</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>managed</code> 和 <code>ephemeral</code> 都能暫停閒置 Pi 程序，預設 300 秒後停止程序、保留 workspace／venv／Pi 歷史。下次 prompt、connect 或資源操作會自動啟動新的 Pi 程序並載入既有 session。這會釋放程序記憶體，但<strong>不會釋放 <code>MAX_SESSIONS</code> 名額或磁碟</strong>；只有 DELETE／TTL 清理才會釋放名額與 session 檔案。</p>
+<p>暫停會終止該 Pi namespace 中的背景子程序。需要持續運行背景工作的部署，可設 <code>PI_IDLE_DISCONNECT_SECONDS=0</code>；不應把這些 session 當成獨立服務管理平台。</p>
+<p>TTL 存在每筆 binding 中，修改環境的預設 TTL 不會改變既有 session。切換保留策略會更新 TTL 並重新計算閒置時間。</p>
+<h2>API 使用</h2>
+<p>以下操作適用於 Compose 或 Helm port-forward。先在目前 shell 設好 <code>API_TOKEN</code>（控制 API token，不是模型 key）、<code>AGENT_ID</code> 與 <code>SESSION_ID</code>；指令沒有預填任何秘密。<code>API_URL</code> 預設 <code>http://127.0.0.1:8000</code>。</p>
+<pre><code class="language-bash">export API_URL=http://127.0.0.1:8000
+# 建立 Agent；記下回應的 agent_id
+curl -fsS -H &quot;Authorization: Bearer $API_TOKEN&quot; -X POST &quot;$API_URL/agents&quot;
+
+# 建立自動清理 session；省略 sandbox_id 由 manager 選擇 worker
+curl -fsS -H &quot;Authorization: Bearer $API_TOKEN&quot; -H 'Content-Type: application/json' \
+  -d '{&quot;retention&quot;:&quot;ephemeral&quot;,&quot;idle_ttl_seconds&quot;:3600}' \
+  &quot;$API_URL/agents/$AGENT_ID/sessions&quot;
+
+# 將特定 session 改成永久受管，供人工檢查／保存證據
+curl -fsS -X PATCH -H &quot;Authorization: Bearer $API_TOKEN&quot; -H 'Content-Type: application/json' \
+  -d '{&quot;retention&quot;:&quot;managed&quot;}' \
+  &quot;$API_URL/agents/$AGENT_ID/sessions/$SESSION_ID/retention&quot;
+
+# 列出自己的 session：包含 retention、idle_ttl_seconds、last_activity（Unix 秒）
+curl -fsS -H &quot;Authorization: Bearer $API_TOKEN&quot; &quot;$API_URL/agents/$AGENT_ID/sessions&quot;
+
+# 全域管理操作：預覽當下可清理的 session（不刪除）
+curl -fsS -X POST -H &quot;Authorization: Bearer $API_TOKEN&quot; &quot;$API_URL/sessions/cleanup?dry_run=true&quot;
+# 實際清理所有符合條件的 session，包含明確 DELETE 失敗後待重試的項目
+curl -fsS -X POST -H &quot;Authorization: Bearer $API_TOKEN&quot; &quot;$API_URL/sessions/cleanup?dry_run=false&quot;
+# 最近一次 sweep 的結果；程序重啟後此摘要重設
+curl -fsS -H &quot;Authorization: Bearer $API_TOKEN&quot; &quot;$API_URL/sessions/cleanup&quot;
+</code></pre>
+<p>全域 cleanup 共用目前的 <code>API_TOKEN</code>，不是每個 Agent 各自的管理權限；本範例尚未提供多租戶 RBAC。自動清理不會產生模型請求或 token 費用。<code>dry_run</code> 預覽不是預約，實際刪除時會再次檢查活動狀態。</p>
+<h2>清理規則與競態處理</h2>
+<ul>
+<li>API 使用現有 Agent lock：<code>/run</code>、prompt、connect、package／resource 操作中不清理該 Agent 的 session。列出 session 不會延長 TTL。</li>
+<li>connect、prompt、resource/package 操作完成時更新活動時間，失敗／timeout 也更新，避免錯誤後立刻清理證據。</li>
+<li>Worker 使用自己的 session lock 與持久化活動時間再次判斷；忙碌或最近使用的 session 回傳 409，API 保留記錄並延後重試。Worker 的暫停 sweep 也跳過鎖定中的 session。</li>
+<li>刪除先把 binding 標成 <code>deleting</code>，再停止 Pi／刪除目錄與 worker SQLite 記錄，成功後才移除 binding。Worker 不可達時保留待刪記錄，下一次 sweep 重試；不會把 session 移到別的 Pod，也不會自動重送 prompt。</li>
+<li>背景 sweep 預設每 60 秒執行一次。實際刪除時間是 TTL 到期後的某次 sweep，還受正在執行的工作、worker 連線與檔案清理時間影響，不是精確 deadline。</li>
+<li>Worker 重啟後 Pi 程序原本就不在；metadata／檔案由 PVC 保留並於下次使用恢復。API 停止期間不會自動刪除 session；Worker 仍可自行暫停閒置程序。</li>
+<li>API registry 是刪除策略的來源；不會對掃描出的未知目錄擅自刪除。必須一起備份／恢復 MongoDB registry、API 對話歷史與各 worker 的 state、sessions PVC；遺失 API registry 的孤兒資料需人工盤點。</li>
+<li>刪除會移除該 session 的生成程式、Pi transcript、檔案和本地套件。API 的 Agent 記錄與 <code>conversations.sqlite</code> 對話歷史不會刪除，也不會自動匯出證據或回收 PVC 配額。需要保留時先用 <a href="#chapter-10">驗證工具</a> collect。</li>
+<li>刪除完成後重用已釋放 UID slot，避免 long-running Pod 的 UID 隨 session 總建立數無限增長；上限保持在 Pod user namespace 的 65536 UID 範圍內。不得繞過 worker 管理自行啟動同 UID 的宿主程序。</li>
+</ul>
+<p>時間戳為壁鐘時間；叢集節點應維持 NTP 同步。此版仍使用單 API process／單 worker supervisor，沒有分散式 lease；不要增加 API replicas 或 Uvicorn workers。</p>
+<h2>設定與建議</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>環境變數</th>
+<th>Helm values</th>
+<th>預設</th>
+<th>建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SESSION_IDLE_TTL_SECONDS</code></td>
+<td><code>lifecycle.ephemeralIdleTtlSeconds</code></td>
+<td>3600</td>
+<td>大於人工取回輸出與正常工作間隔；只套用新 ephemeral session</td>
+</tr>
+<tr>
+<td><code>SESSION_CLEANUP_INTERVAL_SECONDS</code></td>
+<td><code>lifecycle.cleanupIntervalSeconds</code></td>
+<td>60</td>
+<td>通常 60；0 關閉 API 與 worker 背景 sweep，明確 DELETE／手動 cleanup 仍可使用</td>
+</tr>
+<tr>
+<td><code>PI_IDLE_DISCONNECT_SECONDS</code></td>
+<td><code>lifecycle.piIdleDisconnectSeconds</code></td>
+<td>300</td>
+<td>降低 idle 記憶體；0 關閉程序暫停</td>
+</tr>
+<tr>
+<td><code>MAX_SESSIONS</code></td>
+<td><code>sandbox.maxSessions</code></td>
+<td>8</td>
+<td>公司初始部署可從 2 開始，依 Python／模型工作量量測</td>
+</tr>
+</tbody>
+</table></div>
+<p>TTL 是資料保留規則，不是執行 timeout；<code>PROMPT_TIMEOUT</code> 仍獨立控制單次 Pi prompt。沒有每個 session 的磁碟總量 quota、每 session cgroup 或 HPA；Pod resources 和 PVC 用量仍需監控。</p>
+<h2>自行驗證（無模型 token）</h2>
+<pre><code class="language-bash">uv sync --locked
+uv run --locked pytest tests/test_lifecycle.py -q
+make test-container
+</code></pre>
+<p>主機測試涵蓋受管／ephemeral、dry-run、活動鎖、刪除失敗重試、權限、舊 DB 遷移、背景 sweep、UID 重用。容器測試另外啟動真正 Pi、寫 <code>result.py</code> 並執行得到 42、暫停程序、重建 worker 後再次執行同一檔案，最後確認程序與目錄刪除。這是 deterministic Pi RPC 驗證，不會把它稱為真實模型生成程式。</p>
+</article>
+<article class="doc" id="chapter-10" aria-label="Session 驗證、執行證據與 tracing 操作手冊"><div class="source">SOURCE / docs/session-verification.md</div><h1>Session 驗證、執行證據與 tracing 操作手冊</h1>
+<p>這份文件對應本專案的 Docker Compose、Agents SDK orchestrator 與 pi RPC worker。目的是讓你自行驗證「模型真的呼叫工具寫檔、執行 Python，並將實際結果回傳給外層 Agent」，保存可檢查的證據，並分別計算兩層模型的用量。</p>
+<p>提供工具：<a href="../scripts/verify_sessions.py"><code>scripts/verify_sessions.py</code></a>。主機使用 <strong>Python 3.12、uv、Docker 與 Docker Compose</strong>，先執行 <code>uv sync --locked</code>。工具本身只用 Python 標準函式庫；透過 uv 使用專案指定的 Python。工具在主機執行，再透過 <code>docker compose exec</code> 存取容器；不要在 API container 裡執行這個工具。它不需要把 Docker socket 掛進 sandbox。</p>
+<h2>1. 一次完成真實 API 驗證</h2>
+<p>在 repository 根目錄執行：</p>
+<pre><code class="language-bash"># 尚未建立 .env 時才複製；已有金鑰就保留原檔
+cp -n .env.example .env
+# 用編輯器填入 OPENAI_API_KEY；不要將真實 key 貼進指令或文件
+chmod 600 .env
+docker compose up --build -d --wait
+
+uv run --locked python scripts/verify_sessions.py verify --output artifacts/my-verification
+</code></pre>
+<p><code>--output</code> 必須是尚未存在的目錄，避免覆蓋之前的證據。不指定時使用 <code>artifacts/verification-日期-時間</code>。工具固定從 repository 根目錄執行 Compose，即使你從其他工作目錄呼叫也能找到服務；相對 output 路徑則以你的目前工作目錄解析。</p>
+<p>API container 使用已載入的 <code>API_TOKEN</code>，模型使用容器中的 <code>OPENAI_API_KEY</code>。修改 <code>.env</code> 後要重新執行 <code>docker compose up -d --wait</code>，讓容器載入設定。不要使用 <code>docker compose config</code> 或列印全部環境變數來確認金鑰。</p>
+<p>這個指令會使用真實 API、產生費用。預設沿用 Compose 的 <code>OPENAI_MODEL</code> 與 <code>PI_MODEL</code>。模型產生的程式和呼叫次數可能不同，每次 token 總量也會不同；沒有硬性 token 預算或自動重試。</p>
+<h3>驗證情境與通過條件</h3>
+<p>工具建立三個全新 Agents、各一個全新 session，避免既有對話和用量混入：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>情境</th>
+<th>Worker</th>
+<th>實際驗證</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python 委派</td>
+<td>sandbox-1</td>
+<td>外層 Agent 委派給 pi；pi <code>write</code> 建立 <code>verification.py</code>、<code>bash</code> 執行平方和，stdout 為 55，外層收到 55</td>
+</tr>
+<tr>
+<td>Standalone skill</td>
+<td>sandbox-1</td>
+<td>直接送 <code>/skill:python-stats 3,6,9</code> 給 pi；transcript 有原生 skill 展開、成功 write/bash，以及 <code>analysis.json</code> 的平均值 6</td>
+</tr>
+<tr>
+<td>Package 與 extension</td>
+<td>sandbox-2</td>
+<td>原生安裝 stats-kit；外層 Agent 委派 package skill；pi 實際呼叫 <code>python_stats</code> 與 <code>session_info</code>，產生平均值 6，Python 路徑是 session venv，外層收到結果</td>
+</tr>
+</tbody>
+</table></div>
+<p>另外查詢兩個未安裝 package 的 sessions，確認 package command 沒有出現。這項檢查證明此次安裝沒有影響其他 worker 上的 sessions；完整同 worker 的檔案、程序和 Python 環境隔離仍由既有 isolation tests 驗證。</p>
+<p>Skill 情境刻意直接呼叫 <code>/pi/prompt</code>，確保使用 pi 原生 skill command 展開。Python 與 package 情境則走完整 <code>/run</code> → Agents SDK tool → Session Manager → pi → Agent 路徑。</p>
+<p>通過時 <code>report.json</code> 的 <code>status</code> 為 <code>passed</code>，並有 <code>checks</code>。只有模型回答「已執行」不算通過：工具還會檢查 transcript 的工具呼叫、成功 toolResult、實際檔案與外層結果。這是對已知範例的功能驗證，不是任意程式正確性證明。</p>
+<p>工具預設保留 sessions，供你繼續查看。讀完證據後執行：</p>
+<pre><code class="language-bash">uv run --locked python scripts/verify_sessions.py cleanup --report artifacts/my-verification/report.json
+</code></pre>
+<p><code>cleanup</code> 只刪除報告列出的 sessions，且要求已執行 collection；本機匯出檔保留。API 目前沒有刪除邏輯 Agent 的 endpoint，所以 Agent registry 留在 MongoDB，外層歷史仍留在 API volume。不要以 <code>docker compose down -v</code> 代替這個步驟，它會刪除整個 sample 的資料。</p>
+<h2>2. 匯出檔案與證據來源</h2>
+<pre><code class="language-text">artifacts/my-verification/
+  report.json
+  sessions/&lt;session-id&gt;/
+    state/session.jsonl
+    state/python-packages.json # 啟動時的有效 Python 套件與 sqlite3 版本
+    trace.json
+    outer-history.json
+    extension-audit.jsonl       # 有工具執行時才會存在
+    verification.py            # Python 情境
+    analysis.py                # skill 情境
+    analysis.json
+    package-stats.json         # package 情境
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>證據</th>
+<th>用途與範圍</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>report.json → requests</td>
+<td>每次 HTTP 請求的時間、method、path、body、status、response；先保存 intent，再呼叫 API；收到回應後先落盤才做 assertion</td>
+</tr>
+<tr>
+<td>requests → response.sandbox_results</td>
+<td>外層實際收到的 pi 結果；不是外層模型自行描述的紀錄</td>
+</tr>
+<tr>
+<td>原生 session.jsonl</td>
+<td>pi 持久化的完整 session entries，包含技能展開後的 user prompt、assistant tool calls、toolResult、assistant usage、最後回答，以及其他原生 entry</td>
+</tr>
+<tr>
+<td>trace.json</td>
+<td>從原生 entries 抽出所有 message，保留 entry ID、parent ID、timestamp；方便逐步閱讀</td>
+</tr>
+<tr>
+<td>outer-history.json</td>
+<td>以 agent_id 查詢 Agents SDK SQLiteSession 的對話歷史，包含 function call／output 和最終訊息；另記錄目前模型設定</td>
+</tr>
+<tr>
+<td>extension-audit.jsonl</td>
+<td>bundled extension 的 tool_result hook：工具名稱、isError、時間；可交叉核對工具執行</td>
+</tr>
+<tr>
+<td>Python／JSON artifacts</td>
+<td>sandbox 真正留下的檔案內容；搭配 bash stdout 或 python_stats toolResult 確認結果</td>
+</tr>
+</tbody>
+</table></div>
+<p>Worker 內 <code>/sessions/&lt;session-id&gt;/data</code> 對應 pi 看見的 <code>/workspace</code>。例如：</p>
+<pre><code class="language-text">pi:     /workspace/analysis.py
+worker: /sessions/&lt;session-id&gt;/data/analysis.py
+</code></pre>
+<p>每個 session 的 HOME、venv、workspace 分離。相同 <code>/workspace/analysis.py</code> 出現在兩個 sessions 不代表共用檔案。</p>
+<p><code>report.json</code> 內也包含證據內容，方便作單檔檢查。輸出預設放進 Git 忽略的 <code>artifacts/</code>，新驗證目錄權限為 0700、匯出檔為 0600。不要自行 commit 實際使用者的 prompts、程式或工具輸出；這些紀錄可能包含敏感內容。工具不匯出 HOME/auth 設定或 API key 環境值，但不會替任意模型輸出做全面秘密遮罩。</p>
+<h2>3. 查看完整 session tracing</h2>
+<p>本工具提供的是 <strong>應用層持久化 session tracing</strong>。目前沒有保存 pi 每個 RPC 串流 delta、完整程序 syscall trace 或每個子程序的原始 stdout/stderr。原生 transcript 中的 toolResult 也可能已被 pi 工具自身截斷；匯出完整 transcript 不等於還原未被工具保存的輸出。重要大量輸出應由程式寫到 workspace 檔案，再用 <code>--artifact</code> 收集。</p>
+<p>依照以下關係追蹤單次執行：</p>
+<pre><code class="language-text">HTTP requests[i]（開始／結束時間、agent_id、允許的 session_ids）
+  → outer-history: run_python_in_sandbox 的 function_call arguments
+  → report: sandbox_results[].session_id
+  → session.jsonl: user prompt（含實際展開的 skill 內容）
+  → assistant.content[].type == toolCall（name、arguments、id）
+  → toolResult.toolCallId 對應 toolCall.id（content、isError）
+  → assistant 最終回答
+  → sandbox_results.output / tool_results
+  → outer-history function_call_output → 外層最終回答
+</code></pre>
+<p>外層的 <code>call_id</code> 與 pi 的 <code>toolCallId</code> 屬於不同層，不能直接視為同一個 trace ID。本範例沒有跨服務的統一 trace ID；以 agent_id、session_id、HTTP 時間和 prompt 串接。工具使用全新 session 並依序呼叫，因此本次驗證的對應關係明確。pi 的 entry <code>id</code>／<code>parentId</code> 可以用來追蹤原生歷史的父子關係。</p>
+<p>快速查看所有工具呼叫、結果與 usage（在主機執行）：</p>
+<pre><code class="language-bash">uv run --locked python - artifacts/my-verification/report.json &lt;&lt;'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))
+for e in r['evidence']:
+    print('\nSESSION', e['id'], e['sandbox_id'], e['usage'])
+    for row in e['trace']:
+        m = row['message']
+        for part in m.get('content', []):
+            if isinstance(part, dict) and part.get('type') == 'toolCall':
+                print(row['timestamp'], 'CALL', part['id'], part['name'], part['arguments'])
+        if m.get('role') == 'toolResult':
+            print(row['timestamp'], 'RESULT', m.get('toolCallId'),
+                  'error=', m.get('isError'), m.get('content'))
+print(json.dumps(r['token_summary'], indent=2))
+PY
+</code></pre>
+<p>要在驗證執行中查看，另開終端，從正在寫入的 report 取得 session ID，將下列範例的 UUID 換成實際值：</p>
+<pre><code class="language-bash"># worker 必須與 report 的 sandbox_id 一致；Ctrl-C 只停止 tail
+# transcript 通常在第一次模型回合持久化後才出現
+docker compose exec -T sandbox-1 tail -n 100 -F \
+  /sessions/REPLACE_WITH_SESSION_UUID/data/state/session.jsonl
+
+# API／worker 的健康、HTTP 和程序錯誤；不是模型 usage 的來源
+docker compose logs --since 10m --timestamps api sandbox-1 sandbox-2
+</code></pre>
+<p>若要永久保存 container logs，可加上 <code>&gt; artifacts/container-logs.txt</code>。worker stderr 目前只在記憶體保留最後 20 chunks，主要用於啟動錯誤回報；並沒有完整落盤，不能將 compose logs 視為完整 pi stderr tracing。</p>
+<p>Compose 的 <code>OPENAI_AGENTS_DISABLE_TRACING=1</code> 表示目前未開啟 SDK 的雲端 tracing export。本文件的本機證據收集不依賴雲端 tracing。原生 extension command 可能完全不呼叫模型，也可能還沒有產生 transcript；不能把這種 command 回應當成模型執行成功。</p>
+<h2>4. Token 如何計算</h2>
+<p>兩層用量來源不同，不能只看 <code>/run</code> 回傳的 <code>usage</code>：</p>
+<pre><code class="language-text">外層 = 每次 /run 回應的 usage.total_tokens 加總
+pi   = 每個 session.jsonl 中，所有 assistant message 的 usage.totalTokens 加總
+總量 = 外層 + pi
+
+pi 的輸入 = usage.input + usage.cacheRead + usage.cacheWrite
+pi 的輸出 = usage.output
+</code></pre>
+<p>這個版本的 pi <code>input</code> 不含 cacheRead／cacheWrite；但 <code>totalTokens</code> 已包含快取，所以不能再把 cacheRead 加到 totalTokens。外層 SDK <code>input_tokens</code> 已經是輸入總數，也不要另外加快取。內部 gateway 若不回傳 usage，或用零填補缺失欄位，本地資料無法證明精確消耗，仍需對照 gateway 的用量紀錄。</p>
+<p>工具直接加總原生 assistant usage，<strong>不</strong>從 <code>agent_end</code> 再加一次、不從 extension audit 計數，也不把 outer-history 複製的 pi 內容再當成 pi 呼叫用量。外層模型讀取工具結果所產生的輸入 token 本來就是另一筆實際用量，應保留在外層統計。</p>
+<p><code>token_summary</code> 的欄位：</p>
+<ul>
+<li><code>agents_sdk</code>：requests、input_tokens、output_tokens、total_tokens。</li>
+<li><code>pi</code>：input、output、cacheRead、cacheWrite、totalTokens。</li>
+<li><code>recorded_total_tokens</code>：已取得 usage 的總和。</li>
+<li><code>complete_for_this_run</code>：這份工具帳本是否具備本次 fresh-session run 的完整紀錄。</li>
+<li><code>limitations</code>：缺 transcript、缺 usage、錯誤／中斷，或既有 session 的範圍限制。</li>
+</ul>
+<p>HTTP 502 的 <code>detail.usage</code> 若存在也會納入。若請求斷線、process 被殺、供應商未回 usage，不能從本地檔案推算精確 token；工具保留已知用量，標示不完整，不猜測為零。這是 provider／SDK 回傳用量的統計，不是帳戶帳單查詢；token 數不等同美元費用。</p>
+<h3>先前實際驗證結果</h3>
+<p>2026-09-09 的三個 fresh sessions，全部通過、沒有遺失的模型 usage：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>層級</th>
+<th style="text-align:right">輸入（含快取）</th>
+<th style="text-align:right">輸出</th>
+<th style="text-align:right">總計</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agents SDK</td>
+<td style="text-align:right">2,107</td>
+<td style="text-align:right">347</td>
+<td style="text-align:right">2,454</td>
+</tr>
+<tr>
+<td>Pi</td>
+<td style="text-align:right">12,463</td>
+<td style="text-align:right">608</td>
+<td style="text-align:right">13,071</td>
+</tr>
+<tr>
+<td>合計</td>
+<td style="text-align:right">14,570</td>
+<td style="text-align:right">955</td>
+<td style="text-align:right"><strong>15,525</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Pi 快取輸入為 7,168。原始證據見 <a href="../reports/sandbox-capabilities-verification.json"><code>reports/sandbox-capabilities-verification.json</code></a>。新工具重現相同三條情境，但每次實際消耗以新報告為準。</p>
+<h2>5. 收集自己的既有 sessions</h2>
+<p>先停止向這些 sessions 發新 prompt，等目前 run 結束，再收集。匯出採跨容器逐一讀取，不是分散式一致性快照；執行中讀取也可能遇到尚未寫完的 JSONL。</p>
+<p>對工具建立、尚未刪除的 sessions：</p>
+<pre><code class="language-bash">uv run --locked python scripts/verify_sessions.py collect \
+  --report artifacts/my-verification/report.json \
+  --artifact my-result.json
+</code></pre>
+<p><code>--artifact</code> 可重複指定，限 workspace 下的 UTF-8 文字檔；不能用絕對路徑、<code>..</code> 或直接要求 home/state/venv。不要用這個文字匯出功能搬運大型資料集或二進位檔。</p>
+<p>若 sessions 是你自行建立的，先寫一個 manifest：</p>
+<pre><code class="language-json">{
+  &quot;fresh_sessions&quot;: false,
+  &quot;sessions&quot;: [
+    {
+      &quot;agent_id&quot;: &quot;替換成真實-agent-UUID&quot;,
+      &quot;id&quot;: &quot;替換成真實-session-UUID&quot;,
+      &quot;sandbox_id&quot;: &quot;sandbox-1&quot;
+    }
+  ],
+  &quot;requests&quot;: []
+}
+</code></pre>
+<p>存為 <code>artifacts/manual/report.json</code>，執行相同 <code>collect</code> 指令即可。<code>sandbox_id</code> 必須對應本機 Compose service；遠端 HTTP worker 不適用本工具的 Docker 匯出方式。新增 worker 可用 <code>verify --worker1 sandbox-1 --worker2 sandbox-3</code>，前提是 Compose 和 API endpoints 已設定好。</p>
+<p>既有 session 的 pi 統計是 <strong>整個 transcript 的累積用量</strong>。沒有保存過 <code>/run</code> response 的外層用量無法從 SQLiteSession 對話歷史還原，所以 manifest 的 <code>requests: []</code> 不代表外層真的消耗零；工具會標示範圍不完整。</p>
+<p>要精確衡量某一輪，優先使用全新 sessions 與全新 Agent。若必須延續既有 session，應在呼叫前後各保存一份 transcript，依 entry ID 找出新 assistant entries 計算差額，同時保存該次 <code>/run</code> 的 usage；不要把每次完整 collect 結果相加，否則重複計數。現有 <code>collect</code> 會更新同一份 snapshot，沒有自動計算差額的功能。</p>
+<h2>6. 失敗處理與工具驗證</h2>
+<ul>
+<li>API quota、模型錯誤或 assertion 失敗：工具保留 requests、嘗試匯出當前證據，exit code 為 1，不自動重試模型、不刪除 sessions。</li>
+<li>HTTP 請求可能已被接受但連線中斷：先檢查 session trace／服務狀態，再決定是否重送，避免重複執行有副作用的程式。</li>
+<li>Session 配置失敗：response 若帶 session_id，可用 API <code>/connect</code> 或 DELETE；未成功返回的 session 不會自動加入工具清理清單，須依保存的錯誤回應處理。</li>
+<li>無 transcript：可能尚未有模型回合、尚未落盤，或 session 已刪除。collect 保存 missing_files 並將用量標為不完整；刪除後無法復原原始檔案。</li>
+<li>Compose 呼叫失敗：確認 <code>docker compose ps</code>、Docker context 和 service 名稱。工具不將 container 全部環境值或 stderr 自動印出。</li>
+<li>收集失敗後，可在 run 已停止且服務恢復時重做 <code>collect</code>；這不會呼叫模型、不增加模型 token。</li>
+</ul>
+<p>工具本身的離線回歸測試：</p>
+<pre><code class="language-bash">uv run --locked python -m unittest discover -s tests -p test_verification_tool.py -v
+</code></pre>
+<p>測試涵蓋快取 token 不重複計算、錯誤回應 usage、缺失／既有 session 的統計限制，並使用先前真實執行報告檢查「移除 bash 執行證據後必須失敗」。Docker 匯出路徑也以不呼叫模型的原生 extension command 實測；真正模型行為請使用本文件的 <code>verify</code> 指令。</p>
+</article>
+<article class="doc" id="chapter-11" aria-label="環境變數設定參考"><div class="source">SOURCE / docs/configuration.md</div><h1>環境變數設定參考</h1>
+<p>本文件逐項對應 <a href="../.env.example"><code>.env.example</code></a>、<a href="../compose.yaml"><code>compose.yaml</code></a> 和目前程式的預設行為。<strong>內部 gateway 部署至少要明確設定兩層的 base URL、model 和可用金鑰，並更換兩組控制 API token。</strong> 表格中的「選填」表示程式有預設或 fallback，不表示該預設適合公司環境。</p>
+<h2>設定從哪裡生效</h2>
+<p>Compose 讀取 <code>.env</code> 作變數替換，再把 <code>compose.yaml</code> 列出的值傳入 container。Shell 中已 export 的同名變數可能覆蓋 <code>.env</code>；遇到設定不符時先檢查是否有舊的 export。不要列印含金鑰的完整環境或 Compose 展開結果。</p>
+<p>這份 Compose 的 <code>${VAR:-default}</code> 在變數未設定或留空時使用 default。以下預設值以透過本專案 Compose 啟動為準；K8s 不會自動讀取 <code>.env</code>，應以 StatefulSet env／Secret（見 <a href="#chapter-13">Helm 部署手冊</a>） 注入。</p>
+<ul>
+<li><strong>條件必填</strong>：執行特定功能時需要提供。</li>
+<li><strong>選填</strong>：可省略，會採預設／fallback。</li>
+<li><strong>部署必改</strong>：技術上可使用範例值，但共用／公司環境應設定自己的值。</li>
+</ul>
+<p>外層與 pi 可使用完全不同的 gateway、API key 和 model name。這裡的「OpenAI 相容」是模型 HTTP API（Chat Completions／Responses）的相容性；僅有 OpenAPI／Swagger schema 本身不足以執行此協定。</p>
+<h2>1. 外層 Agents SDK：API container</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>變數</th>
+<th>是否必填</th>
+<th>範例檔／未設定時的行為</th>
+<th>建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td>模型 <code>/run</code> 條件必填</td>
+<td>範例留空，沒有可用金鑰預設；空值呼叫 <code>/run</code> 回 503</td>
+<td>使用 gateway 配發給外層 Agent 的 key；K8s 用 Secret。只跑無模型測試可留空。若內部 gateway 確實不驗證認證，仍需填非空 placeholder，才能通過此 sample 的檢查</td>
+</tr>
+<tr>
+<td><code>OPENAI_MODEL</code></td>
+<td>選填；內部部署應明填</td>
+<td><code>gpt-4.1-mini</code></td>
+<td>填 gateway 實際支援且可 tool calling 的 model ID；範例值只是 sample 預設，不代表內部存在此模型</td>
+</tr>
+<tr>
+<td><code>OPENAI_BASE_URL</code></td>
+<td>選填；內部 gateway 條件必填</td>
+<td>範例留空；使用 <code>https://api.openai.com/v1</code></td>
+<td>公司環境明填內部 API prefix，例如 <code>http://llm-gateway.models.svc.cluster.local:8000/v1</code>，以公司實際協定／位址為準</td>
+</tr>
+<tr>
+<td><code>OPENAI_API_MODE</code></td>
+<td>選填</td>
+<td>範例留空；有 <code>OPENAI_BASE_URL</code> 時為 <code>chat_completions</code>，無 base URL 時為 <code>responses</code></td>
+<td>內部環境建議明填 <code>chat_completions</code>；若 gateway 明確支援 Responses 才填 <code>responses</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>API key 與下方 <code>API_TOKEN</code> 是不同用途，不能混用。Base URL 不可含 username/password、query 或 fragment，也不要填完整 <code>/chat/completions</code>／<code>/responses</code> 路徑。</p>
+<h2>2. Pi 模型：sandbox worker containers</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>變數</th>
+<th>是否必填</th>
+<th>範例檔／未設定時的行為</th>
+<th>建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PI_MODEL</code></td>
+<td>選填；內部部署應明填</td>
+<td><code>gpt-4.1-mini</code>；<strong>不繼承 OPENAI_MODEL</strong></td>
+<td>填 coding 模型 ID，需支援 tool calling 與 streaming tool calls；兩層模型可相同或不同</td>
+</tr>
+<tr>
+<td><code>PI_BASE_URL</code></td>
+<td>選填；內部 gateway 條件必填</td>
+<td>範例留空；使用公網 OpenAI；<strong>不繼承 OPENAI_BASE_URL</strong></td>
+<td>即使兩層使用同一個 gateway，也要分別填兩個 base URL</td>
+</tr>
+<tr>
+<td><code>PI_API_KEY</code></td>
+<td>選填，但 pi 模型呼叫需有效認證</td>
+<td>範例留空；fallback 到 worker 的 <code>OPENAI_API_KEY</code></td>
+<td>同 key 可留空；公司環境建議獨立 key，方便權限及用量管理。worker 若只注入 PI_API_KEY 也可運作。無認證 gateway 可用非空 placeholder</td>
+</tr>
+<tr>
+<td><code>PI_API_MODE</code></td>
+<td>選填</td>
+<td>範例留空；有 PI_BASE_URL 時為 <code>chat_completions</code>；兩者都空時使用 pi 內建 OpenAI provider（預設 gpt-4.1-mini 使用 Responses）</td>
+<td>建議與實際 gateway 協定一致並明填；<strong>不繼承 OPENAI_API_MODE</strong></td>
+</tr>
+<tr>
+<td><code>PI_CONTEXT_WINDOW</code></td>
+<td>選填；只作用於自訂 pi provider</td>
+<td><code>128000</code>；內建 provider 模式忽略此值、沿用內建模型資料</td>
+<td>必須改成模型／gateway 的實際 context 上限。只有服務確實支援時才能沿用 128000；這是告知 pi 的模型資料，不會擴大伺服器能力</td>
+</tr>
+<tr>
+<td><code>PI_MAX_TOKENS</code></td>
+<td>選填；只作用於自訂 pi provider</td>
+<td><code>4096</code>；內建 provider 模式忽略此值</td>
+<td>4096 可作一般程式生成的起點；小任務可從 2048 試起，程式常被截斷再調高。須滿足 <code>0 &lt; PI_MAX_TOKENS &lt;= PI_CONTEXT_WINDOW</code> 且不超過 gateway 上限</td>
+</tr>
+<tr>
+<td><code>PI_MODEL_COMPAT</code></td>
+<td>選填；只作用於自訂 pi provider</td>
+<td>範例留空，等同沒有額外 overrides</td>
+<td>先留空；只有 gateway 錯誤或文件表明需要時才設定合法 JSON object。不要直接關掉 streaming usage，否則可能無法統計 pi token</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>自訂 pi provider</strong> 指 PI_BASE_URL 或 PI_API_MODE 至少有一個非空，此時產生 <code>sandbox-openai</code> provider。只有設定 context、max tokens 或 compat，而 base URL／mode 都留空，不會啟用自訂 provider。</p>
+<p><code>PI_MAX_TOKENS</code> 是 pi 每次模型輸出的上限設定，不是整個 session、整個 <code>/run</code>、外層模型或兩層合計的 token 預算。一次任務可能包含多次模型呼叫，歷史／套件清單也會占用輸入 context。</p>
+<h3>協定選擇與 fallback</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Base URL</th>
+<th>API mode</th>
+<th>有效行為</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>兩者都空</td>
+<td>空</td>
+<td>外層用公網 OpenAI Responses；pi 用內建 OpenAI provider</td>
+</tr>
+<tr>
+<td>指定內部 URL</td>
+<td>空</td>
+<td>該層預設使用 Chat Completions</td>
+</tr>
+<tr>
+<td>指定 URL</td>
+<td><code>chat_completions</code></td>
+<td>呼叫該 URL 下的 <code>/chat/completions</code></td>
+</tr>
+<tr>
+<td>指定 URL</td>
+<td><code>responses</code></td>
+<td>呼叫該 URL 下的 <code>/responses</code></td>
+</tr>
+<tr>
+<td>空</td>
+<td>明填合法 mode</td>
+<td>仍以公網 <code>https://api.openai.com/v1</code> 為 base URL；pi 啟用自訂 provider</td>
+</tr>
+</tbody>
+</table></div>
+<p>每層獨立套用以上規則；沒有端點失敗後切回公網的 fallback。<strong>不能只填 API mode 而忘記內部 base URL。</strong> 唯一跨兩層的憑證 fallback 是 <code>PI_API_KEY → OPENAI_API_KEY</code>；base URL、model、mode 都不互相繼承。</p>
+<p>Chat Completions 的 pi 相容預設為：<code>supportsStore=false</code>、<code>supportsDeveloperRole=false</code>、<code>supportsReasoningEffort=false</code>、<code>maxTokensField=&quot;max_tokens&quot;</code>。可用 <code>PI_MODEL_COMPAT</code> 覆蓋，例如只有 gateway 不接受 streaming usage 選項時才使用：</p>
+<pre><code class="language-dotenv">PI_MODEL_COMPAT={&quot;supportsUsageInStreaming&quot;:false}
+</code></pre>
+<p><code>PI_MODEL_COMPAT</code> 不會改變外層 Agents SDK 的請求參數。gateway 必須能接受外層 SDK 的 tool schema；本專案沒有為所有相容服務提供自動參數轉換。</p>
+<h2>3. 控制 API、port、timeout 與容量</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>變數</th>
+<th>是否必填</th>
+<th>預設值</th>
+<th>範圍與建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>API_TOKEN</code></td>
+<td>選填；公司／共用環境部署必改</td>
+<td><code>local-demo-change-me</code></td>
+<td>Client → API 的 Bearer token。建議用 32 bytes 隨機值產生的 hex 字串；所有呼叫 client 要同步設定。與模型 key 分開</td>
+</tr>
+<tr>
+<td><code>SANDBOX_TOKEN</code></td>
+<td>選填；公司／共用環境部署必改</td>
+<td><code>worker-demo-change-me</code></td>
+<td>API → worker 的 Bearer token。使用另一組隨機值；API 與所有 worker 必須一致，不要與 API_TOKEN 共用</td>
+</tr>
+<tr>
+<td><code>API_PORT</code></td>
+<td>選填</td>
+<td><code>8000</code></td>
+<td>只改 Compose 主機的 <code>127.0.0.1:&lt;port&gt; → api:8000</code> 映射；建議留 8000，衝突時改 8001 等未使用 port。K8s Service port 不受此值控制</td>
+</tr>
+<tr>
+<td><code>PROMPT_TIMEOUT</code></td>
+<td>選填</td>
+<td><code>180</code> 秒</td>
+<td>限制單次 pi prompt；Session Manager 的 worker HTTP timeout 為此值加 60 秒、connect timeout 為 5 秒。先用 180；內部模型排隊／生成較慢時，可量測後調至 300。不是整個外層 Agent run 的總 timeout</td>
+</tr>
+<tr>
+<td><code>MAX_SESSIONS</code></td>
+<td>選填</td>
+<td>每個 worker <code>8</code></td>
+<td>包含閒置與配置中的 sessions，<strong>不是正在執行的模型請求數</strong>。目前每 worker 2 GiB／2 CPU，初次公司部署可保守從 2 開始，再依實測記憶體與工作量增加；8 是範例值，沒有吞吐或容量保證</td>
+</tr>
+</tbody>
+</table></div>
+<p>Timeout 應為正數，sessions 為正整數；<code>MAX_SESSIONS=0</code> 會拒絕新 session，不能拿來表示無上限。變更上限不會自動刪除既有 sessions。pi prompt 超時會停止該 session 程序、保留檔案，不會回滾已發生的副作用。</p>
+<p>產生兩組控制 token（執行兩次，分別填入）：</p>
+<pre><code class="language-bash">python3 -c 'import secrets; print(secrets.token_hex(32))'
+</code></pre>
+<h2>4. 建議設定組合</h2>
+<h3>本機 OpenAI demo</h3>
+<p>只跑啟動／離線工具測試可維持範例空 key。若要呼叫真實模型，在 <code>.env.example</code> 的基礎上填入 OPENAI_API_KEY 即可，pi 會沿用它；base URL、mode、compat 可留空，其餘沿用範例。gpt-4.1-mini 是這個 sample 的相容預設，不是對其他模型可用性或價格的推薦。</p>
+<h3>公司內部 gateway（建議起點）</h3>
+<pre><code class="language-dotenv">OPENAI_BASE_URL=http://coordinator-gateway.models.svc.cluster.local:8000/v1
+OPENAI_API_KEY=replace-with-outer-key
+OPENAI_MODEL=replace-with-real-coordinator-model-id
+OPENAI_API_MODE=chat_completions
+
+PI_BASE_URL=http://coding-gateway.models.svc.cluster.local:9000/v1
+PI_API_KEY=replace-with-pi-key
+PI_MODEL=replace-with-real-coding-model-id
+PI_API_MODE=chat_completions
+# 32768 只是此範例假設，必須換成所選模型／gateway 的真實上限
+PI_CONTEXT_WINDOW=32768
+PI_MAX_TOKENS=4096
+PI_MODEL_COMPAT=
+
+API_TOKEN=replace-with-first-random-token
+SANDBOX_TOKEN=replace-with-second-random-token
+API_PORT=8000
+PROMPT_TIMEOUT=180
+MAX_SESSIONS=2
+</code></pre>
+<p>範例中的 URLs、model IDs 和 keys 都需要替換；依公司政策使用 HTTPS 與公司 CA。先驗證一次單 session 的 tool call／Python 執行，再調整 session 數、輸出上限與 timeout，不要同時放大所有限制。這些容量數字是保守起點，不是效能量測結果。</p>
+<p>K8s 建議分配：</p>
+<ul>
+<li>API StatefulSet：OPENAI_*、API_TOKEN、SANDBOX_TOKEN、PROMPT_TIMEOUT，以及實際 SANDBOX_ENDPOINTS。</li>
+<li>Worker StatefulSet：PI_*、SANDBOX_TOKEN、PROMPT_TIMEOUT、MAX_SESSIONS、各自 SANDBOX_ID；需要 key fallback 時另外注入 OPENAI_API_KEY。</li>
+<li>keys／tokens 放 Secret，其餘可用 ConfigMap。API_PORT 是本機 Compose 設定，不必放進 worker。</li>
+</ul>
+<p>公司網路部署、預裝 Python 套件與無外網驗證見 <a href="#chapter-8">離線 sandbox 文件</a>。</p>
+<h2>5. 不屬於 <code>.env.example</code> 的設定</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>設定</th>
+<th>目前來源／預設</th>
+<th>如何修改</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PYTHON_PACKAGE_INSTALLER</code></td>
+<td>Docker build ARG，預設 <code>uv</code></td>
+<td><code>docker compose build --build-arg PYTHON_PACKAGE_INSTALLER=pip sandbox-1 sandbox-2</code>；只寫入 <code>.env</code> 不會自動生效</td>
+</tr>
+<tr>
+<td>預裝 Python 套件</td>
+<td><code>pyproject.toml</code> 的 <code>sandbox</code> dependency group 與 <code>uv.lock</code></td>
+<td>修改後重新 build、部署 image；不是 runtime 環境變數</td>
+</tr>
+<tr>
+<td><code>SANDBOX_ENDPOINTS</code></td>
+<td>compose.yaml 的 JSON，固定指向 sandbox-1、sandbox-2</td>
+<td>增加 worker 時修改 Compose；Helm 依 replicas 產生固定 Pod DNS；只放 <code>.env</code> 不會覆蓋目前固定值</td>
+</tr>
+<tr>
+<td><code>SANDBOX_ID</code></td>
+<td>Compose 每個 worker 的固定名稱</td>
+<td>每個 worker 身分需唯一，並與 endpoints 的 key 一致</td>
+</tr>
+<tr>
+<td><code>OPENAI_AGENTS_DISABLE_TRACING</code></td>
+<td>API Compose 固定為 <code>1</code></td>
+<td>雲端 tracing 目前停用；本機 session tracing 不受影響。只放 <code>.env</code> 不會改變固定值</td>
+</tr>
+<tr>
+<td><code>PIP_NO_INDEX</code>、<code>UV_OFFLINE</code>、<code>UV_PYTHON_DOWNLOADS</code></td>
+<td>isolation.py 分別固定為 <code>1</code>、<code>true</code>、<code>never</code></td>
+<td>由程式控制 session 的預設安裝政策，不從 worker 任意環境變數繼承</td>
+</tr>
+<tr>
+<td>Worker CPU／RAM／PID 上限</td>
+<td>Compose 的 cpus=2、mem_limit=2g、pids_limit=512</td>
+<td>修改 Compose 或 K8s resources；MAX_SESSIONS 不會自動增加這些資源</td>
+</tr>
+</tbody>
+</table></div>
+<h2>6. 套用與確認</h2>
+<pre><code class="language-bash"># 首次設定；已有 .env 不要覆蓋
+cp -n .env.example .env
+chmod 600 .env
+# 編輯 .env 後重建容器設定；單純 restart 不會重新套用新 env
+docker compose up -d --wait
+docker compose ps
+</code></pre>
+<p>只改 <code>.env</code> 不需要重新 build；改預裝套件或 Dockerfile 才需要 <code>docker compose up --build -d --wait</code>。K8s Chart 使用 OnDelete：更新 Helm values／Secret 後，先等工作完成再明確重建對應 Pods，詳見 <a href="#chapter-13">部署手冊</a>；已啟動的程序不會自動載入新的環境值。先完成正在執行的任務再更新，以免中斷 session。</p>
+<p>可用 <a href="#chapter-10">session 驗證工具</a> 檢查端點的實際 tool calling；<code>verify</code> 會呼叫設定好的模型，<code>collect</code> 不會。這份文件只說明設定，不會修改你的真實 <code>.env</code> 或觸發任何模型請求。</p>
+<h2>Session 清理（全部選填）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>環境變數</th>
+<th>預設／範圍</th>
+<th>使用位置與建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SESSION_IDLE_TTL_SECONDS</code></td>
+<td><code>3600</code>，正整數</td>
+<td>API：新建 ephemeral session 的 TTL；可用 request 的 idle_ttl_seconds 覆蓋，managed 不適用</td>
+</tr>
+<tr>
+<td><code>SESSION_CLEANUP_INTERVAL_SECONDS</code></td>
+<td><code>60</code>，非負整數</td>
+<td>API／worker：背景刪除／暫停 sweep 間隔；0 關閉背景 sweep</td>
+</tr>
+<tr>
+<td><code>PI_IDLE_DISCONNECT_SECONDS</code></td>
+<td><code>300</code>，非負整數</td>
+<td>worker：暫停 idle Pi 程序，保留資料；0 關閉暫停</td>
+</tr>
+</tbody>
+</table></div>
+<p>省略／留空 <code>.env</code> 使用 Compose 預設；直接注入 Pod env 時請提供有效整數，不要留空。Chart 由 <code>lifecycle.ephemeralIdleTtlSeconds</code>、<code>cleanupIntervalSeconds</code>、<code>piIdleDisconnectSeconds</code> 設定，JSON schema 會拒絕負值及 0 TTL。通常採用 3600／60／300，再依工作間隔與記憶體觀察調整；需要常駐背景子程序則關閉 Pi 暫停。舊 session 保持 managed，不會自動變成 ephemeral。詳見 <a href="#chapter-9">生命週期操作</a>。</p>
+<p>Helm 的非環境設定、storage、image、replicas、NetworkPolicy 見 <a href="../charts/pi-sandbox/values.yaml">values.yaml</a>；內部端點範例見 <a href="../charts/pi-sandbox/examples/internal.yaml">internal.yaml</a>。<code>existingSecret</code> 預設 pi-sandbox-secrets，但 Secret 本身必須預先建立，四個 key 皆須存在；Chart 不提供可用的預設認證。</p>
+<h2>MongoDB Session Manager</h2>
+<p><code>MONGODB_URI</code> 在 direct process／K8s 必填；Compose 預設 mongodb://mongodb:27017。<code>MONGODB_DATABASE</code> 選填 pi_agents；<code>MONGODB_USERNAME</code>／<code>MONGODB_PASSWORD</code> 可省略以使用 URI 內認證，否則需成對提供。Compose 的本機 defaults 為 pi_demo／pi-demo-change-me，authSource 為 pi_agents；直接程序與 Helm 的 <code>MONGODB_AUTH_SOURCE</code> 預設 admin。<code>MONGODB_TIMEOUT_MS</code> 選填 5000（正整數），<code>MONGODB_TLS_CA_FILE</code> 選填自訂 CA 路徑。完整規則、root 初始化變數與輪替見 <a href="#chapter-12">MongoDB 手冊</a>。</p>
+<p>Helm 不載入 <code>.env</code>：使用 <code>mongodb.existingSecret</code> 與 uriKey／usernameKey／passwordKey 引用 Vault 同步 Secret；database／authSource／timeoutMS 為非秘密 values，tlsCASecret 選填。只注入 API Pod。Vault Secret 更新後須重建 API Pod，既有 env 不自動改變。</p>
+</article>
+<article class="doc" id="chapter-12" aria-label="MongoDB Session Manager、Compose 與 Vault Secret"><div class="source">SOURCE / docs/mongodb.md</div><h1>MongoDB Session Manager、Compose 與 Vault Secret</h1>
+<p>Session Manager 現在使用 MongoDB 保存 Agent 與 session registry。Python driver 使用 thread-safe PyMongo client／連線池，資料庫操作透過 <code>asyncio.to_thread</code> 執行，避免阻塞 FastAPI event loop。MongoDB 不可用時回傳一般化 503，不把連線 URI／帳密放進 API 錯誤。</p>
+<h2>保存哪些資料</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>位置</th>
+<th>資料</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MongoDB <code>agents</code></td>
+<td>邏輯 Agent ID</td>
+</tr>
+<tr>
+<td>MongoDB <code>bindings</code></td>
+<td>session ID、Agent／sandbox 路由、status、retention、TTL、活動時間、expires_at</td>
+</tr>
+<tr>
+<td>API <code>/state/conversations.sqlite</code></td>
+<td>Agents SDK 對話歷史，仍使用 SQLiteSession</td>
+</tr>
+<tr>
+<td>Worker <code>/state/worker.sqlite</code></td>
+<td>本 Pod 的 UID slot 與 session 活動 metadata</td>
+</tr>
+<tr>
+<td>Worker <code>/sessions</code></td>
+<td>每 session 的 workspace、venv、Pi transcript 與生成檔案</td>
+</tr>
+</tbody>
+</table></div>
+<p>Session Manager 僅使用 MongoDB registry。MongoDB 不代表 API 現在可多副本：Agent lock／HTTP 協調仍在程序內，API 保持 <strong>1 replica、1 Uvicorn process</strong>。</p>
+<p><code>bindings._id</code> 為 session UUID，另建立 Agent／建立時間、sandbox、status、retention／expires_at 查詢 indexes。<strong>沒有 MongoDB TTL index</strong>：仍須先停止 worker 程序並刪除目錄，成功才移除 binding。DB 或 worker 不可用時保留可恢復狀態；不會把生成程式的 prompt 自動重送。</p>
+<h2>本機 Compose</h2>
+<p>全新安裝：</p>
+<pre><code class="language-bash">cp -n .env.example .env
+# 編輯模型設定；MongoDB 本機設定已有 sample defaults。
+docker compose up --build -d --wait
+docker compose exec api python scripts/smoke.py
+docker compose exec api python scripts/demo_resources.py
+# 有模型 key 且要執行付費模型時才執行：
+docker compose exec api python scripts/demo.py
+</code></pre>
+<p>Compose 包含 <code>mongo:8.0.16</code>、<code>mongodb-data</code> named volume、健康檢查及 <code>mongodb/init.js</code> 的應用帳號初始化。MongoDB 沒有 host port，只能在 Compose network 存取。預設 API 使用 <code>pi_demo</code>，只授予 <code>pi_agents</code> 的 <code>readWrite</code>；root 帳號只供初始化／本機測試。sample 密碼只適用本機 demo，共享環境請更換。</p>
+<p>初始化 script <strong>僅對空資料 volume 執行</strong>。修改 <code>.env</code> 的帳號、密碼或 database 不會更新 MongoDB 已有使用者；請依 MongoDB 管理流程更新使用者，再重新建立 API container。不要為改密碼刪掉資料 volume。<code>docker compose down</code> 保留資料；<code>down -v</code> 會刪除 MongoDB 與所有原有 sample volumes。</p>
+<p>API 的 <code>/health</code> 是程序存活；<code>/ready</code> 會 ping MongoDB，Compose 與 Helm readiness 使用 <code>/ready</code>。首次啟動會建立 indexes；API 帳號需要該 database 的 read/write 與 createIndex 權限。MongoDB 不可用時 readiness 失敗。</p>
+<h2>環境變數</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>環境變數</th>
+<th>Direct process／Helm</th>
+<th>Compose 預設</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MONGODB_URI</code></td>
+<td>必填，無 fallback</td>
+<td><code>mongodb://mongodb:27017</code></td>
+<td>支援 MongoDB URI／SRV URI；外部 replica set 的 hosts、TLS、replicaSet 等由 URI 設定</td>
+</tr>
+<tr>
+<td><code>MONGODB_DATABASE</code></td>
+<td>選填 <code>pi_agents</code></td>
+<td><code>pi_agents</code></td>
+<td>使用的 database，不由 URI path 決定</td>
+</tr>
+<tr>
+<td><code>MONGODB_USERNAME</code></td>
+<td>選填，須與 password 成對</td>
+<td><code>pi_demo</code></td>
+<td>獨立 env 認證；不需自行 percent-encode</td>
+</tr>
+<tr>
+<td><code>MONGODB_PASSWORD</code></td>
+<td>選填，須與 username 成對</td>
+<td><code>pi-demo-change-me</code></td>
+<td>可由 Vault 同步的 Secret 注入</td>
+</tr>
+<tr>
+<td><code>MONGODB_AUTH_SOURCE</code></td>
+<td>選填 <code>admin</code></td>
+<td><code>pi_agents</code></td>
+<td>獨立 username/password 啟用時使用；URI 內認證則由 URI 控制</td>
+</tr>
+<tr>
+<td><code>MONGODB_TIMEOUT_MS</code></td>
+<td>選填 <code>5000</code></td>
+<td><code>5000</code></td>
+<td>正整數，server selection／connect／socket timeout，建議先保留 5 秒</td>
+</tr>
+<tr>
+<td><code>MONGODB_TLS_CA_FILE</code></td>
+<td>選填，預設未設定</td>
+<td>未自動掛載</td>
+<td>指定 CA 檔案會啟用 TLS；URI <code>tls=true</code> 且未提供時使用系統信任鏈</td>
+</tr>
+<tr>
+<td><code>MONGO_ROOT_USERNAME</code></td>
+<td>Helm 不使用</td>
+<td><code>root</code></td>
+<td>本機 MongoDB 初始化用</td>
+</tr>
+<tr>
+<td><code>MONGO_ROOT_PASSWORD</code></td>
+<td>Helm 不使用</td>
+<td><code>mongo-root-demo-change-me</code></td>
+<td>本機 MongoDB 初始化用，API 不使用 root</td>
+</tr>
+</tbody>
+</table></div>
+<p>可以把帳密放在 URI（注意 URI percent-encoding），這時不要再設定 username/password env（Compose 請在 .env 將兩者明確設為空字串，避免使用本機 defaults）；公司部署建議分開 keys 注入。不要使用 <code>tlsAllowInvalidCertificates</code> 等方式略過驗證。只設定 URI 的 database path 不會覆蓋 <code>MONGODB_DATABASE</code>，請明確設定後者。</p>
+<h2>Helm：外部 cluster + Vault → Kubernetes Secret → env</h2>
+<p>Chart <strong>不部署 MongoDB</strong>。公司透過既有 Vault 整合 controller／流程同步 Kubernetes Secret，Chart 只引用 Secret。沒有安裝 Vault Operator、CRD、Vault policy 或憑證輪替控制器。</p>
+<p>假設 Secret 名稱 <code>vault-pi-mongodb</code>，同 namespace 中包含：</p>
+<pre><code class="language-text">MONGODB_URI       mongodb://mongo-0.internal:27017,mongo-1.internal:27017/?replicaSet=rs0&amp;tls=true
+MONGODB_USERNAME  &lt;Vault 提供的帳號&gt;
+MONGODB_PASSWORD  &lt;Vault 提供的密碼&gt;
+</code></pre>
+<p>values 設定只有 Secret 名稱與非秘密的參數：</p>
+<pre><code class="language-yaml">mongodb:
+  existingSecret: vault-pi-mongodb
+  uriKey: MONGODB_URI
+  usernameKey: MONGODB_USERNAME
+  passwordKey: MONGODB_PASSWORD
+  database: pi_agents
+  authSource: admin
+  timeoutMS: 5000
+  tlsCASecret: company-mongodb-ca  # optional，Secret key 為 ca.crt
+</code></pre>
+<p><code>uriKey</code> 必須存在；username/password Secret keys 可省略，但應一起省略（用於 URI 已含帳密的配置）。Env 只注入 API，worker／Pi session 不取得 MongoDB 認證。若使用 <code>tlsCASecret</code>，Chart 將 <code>ca.crt</code> 唯讀掛載至 API <code>/etc/mongodb-ca/ca.crt</code>，並設定對應 env；預設空字串不掛載。</p>
+<p><code>networkPolicy.apiEgress</code> 必須允許外部 MongoDB <strong>所有 replica-set 成員／SRV 發現目標</strong>與 DNS；只允許 seed host 可能在拓撲變更後失效。Chart 的 internal values 有示意規則，需要換成公司實際 CIDRs／ports。模型 gateway egress 仍須另外允許。</p>
+<p>Vault 更新 Kubernetes Secret 後，<strong>現有 Pod 的 env 不會自動更新</strong>。本 chart 為 OnDelete；安排停止新工作、等待現有工作結束，再重建 API Pod，讓它重新載入認證並建立連線池。動態帳密的 lease／輪替時間應預留新舊憑證重疊窗口。Vault 與外部 MongoDB 的實際整合需由公司環境驗證。</p>
+<h2>測試</h2>
+<pre><code class="language-bash">make check          # registry 單元測試預設使用 mongomock
+make test-container # 無外網 Pi 整合；registry 使用 mock
+make test-mongodb   # 本機真實 MongoDB，獨立 pi_test_* databases，結束後清除
+</code></pre>
+<p><code>test-mongodb</code> 固定連本機 Compose 的 <code>mongodb</code>，使用本機 root 帳號建立／移除測試 databases，不接收外部 URI。一般 pytest 若設定 <code>TEST_MONGODB_URI</code> 會使用該測試 cluster；<strong>不要指向正式 cluster</strong>，其帳號需能建立／刪除 <code>pi_test_*</code> databases。測試涵蓋唯一 ID、查詢索引、重建 manager 後持久化、所有權、TTL 清理、失敗重試；不使用模型 tokens。</p>
+<p>MongoDB 設計文件：<a href="#chapter-5">Schema 與 index design</a>、<a href="#chapter-6">Registry 架構設計</a>。Document models 使用 Pydantic，來源為 <a href="../orchestrator/documents.py"><code>orchestrator/documents.py</code></a>。</p>
+</article>
+<article class="doc" id="chapter-13" aria-label="Kubernetes 多 sandbox Helm 部署"><div class="source">SOURCE / docs/kubernetes.md</div><h1>Kubernetes 多 sandbox Helm 部署</h1>
+<p>Chart 位於 <a href="#chapter-15"><code>charts/pi-sandbox</code></a>，適用於 Kubernetes <strong>1.33+</strong>、Helm 3。需要先建置並推送本專案 API／sandbox images 至叢集能存取的 registry。Chart 不安裝 Python、npm 或 Pi packages；skills、extensions、Pi packages 與 Python 應用套件沿用 image build 的預裝內容。</p>
+<h2>架構與必要條件</h2>
+<ul>
+<li>一個 API StatefulSet 固定 <strong>1 replica</strong>，獨立 state PVC 保存對話 SQLite；Agent／session registry 保存在外部 MongoDB。</li>
+<li>一個 worker StatefulSet，預設 <strong>2 replicas</strong>。每個 ordinal 有獨立 <code>state</code> 和 <code>sessions</code> PVC；API 透過 headless Service 的 Pod DNS 直接呼叫指定 worker，不把 session request 丟到共用負載平衡 Service。</li>
+<li>例如 release <code>demo</code>、namespace <code>agents</code>：<code>demo-pi-workers-0.demo-pi-workers.agents.svc:8080</code>；sandbox ID 是 <code>demo-pi-workers-0</code>。Chart 依 replicas 產生 <code>SANDBOX_ENDPOINTS</code>，不需 Kubernetes API discovery 權限。</li>
+<li>兩種 workload 都使用 <code>OnDelete</code> 更新策略，避免 Helm upgrade 自動中斷執行中的 sessions。必須依下方程序安排 Pod 重建；<code>helm upgrade --wait</code> 本身不代表 Pod 已採用新設定。</li>
+<li>PVC 在縮容／解除安裝後 <strong>Retain</strong>；session TTL 刪檔不刪 PVC。請監控空間及實際備份，不能將 PV snapshot 當成跨 MongoDB 與各 PVC 的自動一致性備份。</li>
+</ul>
+<p>Worker 必須能使用巢狀 user/mount/PID namespaces 和 <code>/proc</code>。Chart 設定 <code>hostUsers: false</code>、<code>procMount: Unmasked</code>，需要 Linux kernel、container runtime、kubelet、CSI volume 的 Pod user namespace／idmapped mount 支援。Kubernetes 1.33/1.34 叢集也需確認相關 feature gates；1.36 起 Pod user namespaces 為 GA。Pod Security／公司 admission policy 必須接受指定安全設定。</p>
+<p>Supervisor 在 <strong>Pod user namespace 內以 root</strong> 執行，保留 SETUID／SETGID／CHOWN／DAC_OVERRIDE／KILL；生成程式仍以獨立非 root UID 在 Bubblewrap 內執行。沒有 privileged、SYS_ADMIN、hostPath、host network 或 Docker socket。seccomp 和 AppArmor 預設 Unconfined 是為現有 Bubblewrap 所需，並非符合 restricted policy 的宣稱；可經平台團隊驗證後提供 Localhost profiles。若叢集禁止這些條件，需調整 worker runtime／隔離方案，不能移除隔離繼續執行。</p>
+<p>官方參考：<a href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">StatefulSet</a>、<a href="https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/">Pod user namespaces</a>、<a href="https://kubernetes.io/docs/tasks/configure-pod-container/security-context/">security context</a>。</p>
+<h2>建置與安裝</h2>
+<pre><code class="language-bash"># 修改 registry 與不可變版本 tag，不要將 secret 放進 build args。
+docker build -f orchestrator/Dockerfile -t registry.example.internal/pi-api:uv-lifecycle-v1 .
+docker build -f sandbox/Dockerfile -t registry.example.internal/pi-worker:uv-lifecycle-v1 .
+docker push registry.example.internal/pi-api:uv-lifecycle-v1
+docker push registry.example.internal/pi-worker:uv-lifecycle-v1
+
+kubectl create namespace agents
+</code></pre>
+<p>另外必須預先備妥外部 MongoDB 與 Vault 同步的 DB Secret（預設 <code>pi-mongodb</code>）；URI／username／password env、CA、egress與輪替見 <a href="#chapter-12">MongoDB 手冊</a>。Chart 不建立 MongoDB。</p>
+<p>在該 namespace 以公司 Secret 管理流程建立 <code>pi-sandbox-secrets</code>，含四個必填 keys：<code>API_TOKEN</code>、<code>SANDBOX_TOKEN</code>、<code>OPENAI_API_KEY</code>、<code>PI_API_KEY</code>。兩個控制 token 應不同；外層模型與 Pi 模型 key 分別設定，Chart 不將外層 key 傳入 worker。Secret 可由 External Secrets／公司平台建立；Chart 不代建明文 Secret，避免放入 Helm release values。</p>
+<p>例如已有受保護、Git 外的四行 <code>KEY=value</code> 檔，可使用：</p>
+<pre><code class="language-bash">kubectl -n agents create secret generic pi-sandbox-secrets --from-env-file=/secure/path/pi-secrets.env
+</code></pre>
+<p>複製 <a href="../charts/pi-sandbox/examples/internal.yaml">internal.yaml</a> 到自己的設定檔，填入 images、兩組 base URL／model name、內部 gateway egress CIDRs、StorageClass。其 IP 是文件專用示意值，不能直接用於正式連線。需拉取私人 image 時設定 <code>imagePullSecrets: [{name: registry-credentials}]</code>。</p>
+<pre><code class="language-bash">helm lint charts/pi-sandbox --strict
+helm template demo charts/pi-sandbox --namespace agents --kube-version 1.33.0 \
+  -f /secure/path/internal-values.yaml &gt; /tmp/pi-manifests.yaml
+# 連得到目標叢集時先驗證 admission；server dry-run 不保存 workload。
+kubectl -n agents apply --dry-run=server -f /tmp/pi-manifests.yaml
+helm upgrade --install demo charts/pi-sandbox -n agents \
+  -f /secure/path/internal-values.yaml --wait --timeout 10m
+kubectl -n agents get pods,pvc
+kubectl -n agents port-forward service/demo-pi-api 8000:8000
+</code></pre>
+<p>設定摘要與 optional/default 規則見 <a href="#chapter-11">configuration.md</a>。本機 <code>.env</code> 由 Compose 使用，Helm <strong>不會自動載入 <code>.env</code></strong>。</p>
+<h2>模型與網路</h2>
+<p><code>api.baseUrl/api.model/api.apiMode</code> 和 <code>sandbox.baseUrl/sandbox.model/sandbox.apiMode</code> 分別設定；內部 OpenAI 相容端點應兩邊都明確設定 URL 和協定，通常 <code>chat_completions</code>。<code>sandbox.contextWindow/maxTokens/modelCompat</code> 對應 Pi 自訂 provider。CA 信任鏈需預先打入 images（Python 與 Node 都要驗證）；不要用停用 TLS 檢查的方式處理公司 CA。</p>
+<p>NetworkPolicy 預設開啟：允許同 namespace client 到 API、API 到本 release worker、到 kube-system CoreDNS 的 DNS；其餘 egress 不允許。必須透過 <code>networkPolicy.apiEgress</code>／<code>sandboxEgress</code> 加入兩組模型 gateway 與必要 MinIO／業務端點。NetworkPolicy 需 CNI 支援才會生效，CIDR 規則不是 FQDN allowlist，DNS／NAT／NodeLocal DNS 的路徑需由平台驗證。若使用不同 DNS labels 或公司統一政策，調整模板或在已有等效政策下關閉 chart policy。Worker 中的任意 session 共用 Pod network 權限，不是每個 session 獨立的 NetworkPolicy。</p>
+<h2>資源、清理與擴縮容</h2>
+<p><code>replicas * maxSessions</code> 是理論 session 名額；managed／暫停／尚未完成刪除的 session 仍占名額。Pod 預設 worker limits 為 2 CPU／2Gi，requests 為 250m／512Mi；應從每 Pod 2 sessions 的設定量測。PID 總量限制需平台 kubelet 的 Pod PID policy，K8s 沒有這裡 Compose <code>pids_limit</code> 的直接 Pod 欄位。</p>
+<p>Session 使用 <code>managed</code>（預設）或 <code>ephemeral</code>；閒置 Pi 預設 300 秒暫停，ephemeral 預設 3600 秒刪除，每 60 秒 sweep。建立／切換、dry-run、清理證據與例外情況見 <a href="#chapter-9">Session 生命週期</a>。啟用清理不會把現有 managed sessions 改成 ephemeral。</p>
+<p>擴容步驟：</p>
+<ol>
+<li>將 <code>sandbox.replicas</code> 增加後 Helm upgrade，等待新增 workers Ready。</li>
+<li>暫停外層新請求並等待既有工作完成，刪除 <code>demo-pi-api-0</code> Pod 讓 StatefulSet 以原 PVC、新 endpoints 重建。Chart 使用 OnDelete，不會自動完成這一步。</li>
+<li>透過帶 API token 的 <code>GET /sandboxes</code> 確認所有 worker，再恢復流量。</li>
+</ol>
+<p>縮容前：停止新增工作／配置，依 <code>GET /agents/{agent_id}/sessions</code> 盤點將被移除的最高 ordinal 上所有 binding。先匯出證據、明確刪除或等待 ephemeral TTL，確認無 pending deletion，再縮 replicas 並依上述方式重建 API。沒有 session migration、自動 drain 或 HPA；若忽略這些步驟，原 binding 會保留但 worker 不可用，必須恢復原 ordinal 與 PVC。</p>
+<p>更新 image／Secret／模型設定時，也應先停止新工作、等工作完成，再逐一刪除受影響 Pod 讓它套用新 StatefulSet template。避免更改 release 名稱、namespace、worker 命名；這些值決定 routing 身分。API 不可同時運行兩份，也不要調高 Uvicorn workers。關閉服務不等於刪資料；只有確認備份與資料保留要求後才人工刪除 retained PVC。</p>
+<h2>驗證範圍與故障處理</h2>
+<pre><code class="language-bash">make lint-helm      # Helm lint、1/3 worker 渲染、DNS/PVC/Secret/Policy 不變條件與錯誤 values
+make test-container # 無外網的真正 Pi、隔離、gateway、生命週期整合測試
+# 可選：對渲染結果執行 Kubernetes schema 驗證；需要取得工具與公開 schema。
+docker run --rm -v /tmp/pi-manifests.yaml:/manifest.yaml:ro \
+  ghcr.io/yannh/kubeconform:v0.7.0 -strict -summary -kubernetes-version 1.33.0 /manifest.yaml
+</code></pre>
+<p>MongoDB 版本完成主機 36 passed／5 skipped、無外網 Linux 容器 41 passed；真實本機 MongoDB 17 passed／1 skipped。Helm 會檢查 1／3 worker 渲染與不合法 values。</p>
+<p>目前已驗證本機 Helm 渲染與 Kubernetes 1.33 schema；本機 Kubernetes API 未啟動，<strong>尚未完成真實叢集安裝驗證</strong>。Compose Linux 容器通過不代表公司 CSI、CNI、admission 或巢狀 userns 必然相容。</p>
+<p>實際安裝後，先檢查 <code>GET /sandboxes</code>（只證明 worker HTTP 健康），再在各 sandbox 明確建立一個 session 並呼叫 <code>/resources</code>，確認 Pi／Bubblewrap 啟動。透過 <code>/pi/prompt</code> 送 <code>/session-info</code> 可驗證無模型 extension command；最後 DELETE 清理。這些操作不需付費模型。若 startup 回傳 503，查看 worker logs 與 Pod events，優先檢查 userns、procMount、AppArmor、seccomp、PVC uidmap／權限與 image 版本。只有需要驗證公司模型端點時，才依 <a href="#chapter-10">session-verification.md</a> 執行 live 驗證並保存 usage。</p>
+</article>
+<article class="doc" id="chapter-14" aria-label="開發、uv 與程式品質檢查"><div class="source">SOURCE / docs/development.md</div><h1>開發、uv 與程式品質檢查</h1>
+<h2>安裝與依賴分組</h2>
+<p>主機使用 Python 3.12、uv 0.10.x（CI／Docker 固定 0.10.9）、GNU Make、Helm 3，以及 Docker Compose。uv 安裝方式見 <a href="https://docs.astral.sh/uv/getting-started/installation/">官方安裝文件</a>。Hadolint 預設使用固定版本 Docker image，不必在主機另裝 binary。</p>
+<pre><code class="language-bash">uv sync --locked
+make check
+# 修改 Docker／隔離／bootstrap／model transport 時再跑真正容器測試
+make test-container
+</code></pre>
+<p><code>pyproject.toml</code> 定義依賴，<code>uv.lock</code> 固定所有解析出的版本與來源。<code>.python-version</code> 是 3.12，project 也限制為 <code>&gt;=3.12,&lt;3.13</code>。這是應用專案，不建立／發布 Python wheel（<code>tool.uv.package=false</code>）。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>分組</th>
+<th>用途</th>
+<th>是否進正式映像</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>project.dependencies</td>
+<td>API／worker supervisor 的執行依賴</td>
+<td>是，獨立 <code>/opt/server</code></td>
+</tr>
+<tr>
+<td>test</td>
+<td>pytest、pytest-asyncio</td>
+<td>只有 sandbox 的 <code>test</code> build target</td>
+</tr>
+<tr>
+<td>dev</td>
+<td>Ruff、yamllint、pre-commit，並包含 test</td>
+<td>否，主機／CI 使用</td>
+</tr>
+<tr>
+<td>sandbox</td>
+<td>pi 生成的程式可用的應用套件</td>
+<td>是，唯讀 base site-packages</td>
+</tr>
+</tbody>
+</table></div>
+<p>常用依賴操作：</p>
+<pre><code class="language-bash">uv add package-name
+uv add --group dev tool-name
+uv add --group sandbox 'package-name==1.2.3'
+# 手動修改 pyproject.toml 後才執行；正常測試不會自動更新 lock
+uv lock
+uv sync --locked
+</code></pre>
+<p>根目錄與 sandbox 舊的 requirements 檔已移除。Docker build 會由 <code>uv.lock</code> 匯出 sandbox group 的完整含 hash requirements，到 image 的 <code>/opt/python-runtime/requirements.txt</code>，再由 pip 或 uv 安裝。修改 sandbox group 後記得重建 image；runtime 不從網路補依賴。所有 groups 共用解析約束，若同一套件版本互斥，uv lock 會報錯，不能忽略衝突。</p>
+<p>Intel macOS 主機使用條件式 <code>cryptography&lt;49</code> 約束，因為 <a href="https://cryptography.io/en/49.0.0/changelog/">cryptography 49 移除了 x86_64 macOS 支援</a>。此條件已寫入 pyproject 與 lock，Linux 部署及 Apple Silicon 不受這個上限影響。</p>
+<h2>Ruff：formatter 與 linter</h2>
+<pre><code class="language-bash">make format       # safe fixes + format，會修改原始碼
+make lint-python  # check + format --check，不修改
+</code></pre>
+<p>Ruff 與 VS Code 使用同一份 pyproject 設定：Python 3.12、100 欄、4 spaces、雙引號、LF。Lint 明確啟用 <code>E4/E7/E9</code>、<code>F</code>、<code>I</code>、<code>UP</code>、<code>B</code>、<code>SIM</code>、<code>C4</code>、<code>PIE</code>、<code>RUF</code>，涵蓋語法／未使用名稱、import 排序、現代 Python、常見 bug 與可維護性；不使用 <code>ALL</code> 或 preview，也不與 formatter 重複管控換行長度。</p>
+<p>FastAPI 的 Depends／Header 宣告和 Path 不可變預設值列入 Bugbear 的 immutable calls；其餘例外應盡量縮小到個別行並說明原因。<code>artifacts/</code> 與歷史 <code>reports/</code> 不作為 Python source 格式化。嵌入測試中的 Python／shell 文字是 runtime fixture，不應因格式化而改變實際語意。</p>
+<h2>YAML 與 Dockerfile</h2>
+<pre><code class="language-bash">make lint-yaml
+make lint-docker
+make lint-helm   # Helm lint、渲染與結構驗證
+make lint        # Python、YAML、Dockerfile、Helm
+</code></pre>
+<ul>
+<li>yamllint：YAML 語法、重複 key、縮排、尾端空白與 truthy 值；使用 strict 模式。允許省略 document-start；GitHub Actions 的 <code>on</code> key 不當作布林錯誤。Compose 的 <code>!reset</code> 保留。</li>
+<li>Hadolint：固定 <code>hadolint/hadolint:v2.12.0-debian</code>，檢查兩個 Dockerfile 和內嵌 shell；warning 即失敗。只豁免 <code>DL3008</code>：Debian 安全套件版本隨 base image 更新，避免硬綁過時 apt 版本。Python 依賴仍完整鎖定。</li>
+<li>Hadolint 容器以唯讀掛載程式碼且 <code>--network none</code> 執行；第一次取得工具 image 仍需 Docker daemon 可存取 registry。離線公司環境應先將 image 匯入／鏡像，必要時覆寫 <code>HADOLINT_IMAGE</code> 指向內部的同版本 image。</li>
+</ul>
+<h2>測試與 Docker targets</h2>
+<p><code>make test</code> 在主機執行 pytest，Linux sandbox 測試會 skip；<code>make test-container</code> 才驗證 Bubblewrap、Pi RPC、預裝套件、兩個本機 mock gateways 和完整工具執行。</p>
+<p>正式 Compose 映像不包含 pytest、Ruff、測試 fixtures；API 使用 <code>/opt/server/bin</code> 的 runtime environment。<code>compose.offline-test.yaml</code> 選擇 sandbox Dockerfile 的 <code>test</code> target，使用獨立 image 名稱 <code>pi-agents-sample-sandbox-test</code>，避免測試 build 覆蓋正式 image tag。測試 container 只有 loopback，無公網、無真實 API key；測試程式與歷史回歸 fixture 只存在 test image；API 正式映像仍保留 demo scripts。</p>
+<pre><code class="language-bash"># 只跑指定容器測試，也要先 build 正確的 test target
+docker compose -f compose.yaml -f compose.offline-test.yaml build sandbox-1
+docker compose -f compose.yaml -f compose.offline-test.yaml run --rm --no-deps \
+  -e RUN_ISOLATION_TESTS=1 sandbox-1 /opt/server/bin/python -m pytest tests/test_gateway.py -q
+</code></pre>
+<h2>VS Code 與 Git hooks</h2>
+<p>開啟 repository 後安裝 <code>.vscode/extensions.json</code> 推薦的 Python、Pylance、Ruff、YAML、Docker、EditorConfig 擴充，先 <code>uv sync --locked</code>，再選取 <code>.venv/bin/python</code>。Python 儲存時由 Ruff format，explicit save 執行 safe fixes 和 imports 整理；YAML／Dockerfile 的完整驗證以 Tasks 的「Quality: lint all」為準。Hadolint editor 擴充若需 native executable 可自行安裝，不影響 Docker 版檢查。</p>
+<p>VS Code tasks 包含 sync、lint、format、host tests 與 offline sandbox tests。<code>.editorconfig</code> 統一 UTF-8／LF／尾端換行，Python 4 spaces、JSON/YAML/TOML 2 spaces、Makefile tab；Markdown 保留有意義的尾端空白。</p>
+<p>需要本機 commit hook 時自行啟用：</p>
+<pre><code class="language-bash">uv run --locked pre-commit install
+uv run --locked pre-commit run --all-files
+</code></pre>
+<p>Hook 使用本專案 uv lock，不另外下載不一致的 Ruff 版本；Dockerfile hook 需要 Docker。沒有自動修改你現有的 Git hooks。GitHub Actions 的 Quality workflow 會執行 <code>make check</code> 和 <code>make test-container</code>，不使用模型金鑰。</p>
+<p>Agent 協作規範見 <a href="../AGENTS.md">AGENTS.md</a>，部署環境變數見 <a href="#chapter-11">configuration.md</a>。</p>
+<p>Helm 模板由 <code>make lint-helm</code> 渲染後檢查，原始 Go templates 不直接交給 yamllint；渲染 YAML 僅額外允許 Helm toYaml 的 indentless lists（<code>.yamllint-rendered.yaml</code>）。Chart 測試涵蓋 1／3 workers 的直接 DNS 路由、PVC、Secret refs、NetworkPolicy 和不合法 values。修改生命週期／chart 時還需 <code>make test-container</code>；K8s schema／server admission 驗證方式見 <a href="#chapter-13">kubernetes.md</a>。</p>
+<p>MongoDB registry 單元測試預設使用 mongomock；<code>make test-mongodb</code> 對 Compose 的真實 MongoDB 執行持久化／清理／document 驗證測試，CI 也執行。SDK 對話 SQLite 與 worker 本地 SQLite 不屬於 registry 儲存。詳見 <a href="#chapter-12">mongodb.md</a>。</p>
+<h2>架構文件維護</h2>
+<p>架構 Markdown 位於 <code>docs/architecture/</code>，互動圖資料是 <code>topology.json</code>，UI 是 <code>template.html</code>。<code>docs</code> dependency group 僅提供 build-time Markdown renderer，不加入 runtime image 環境。</p>
+<pre><code class="language-bash">uv sync --locked --group docs
+make docs
+make docs-check
+</code></pre>
+<p>產生的 <code>docs/architecture.html</code> 應與來源一起提交；單檔內嵌完整手冊、SVG 與互動程式，不使用 CDN。只有跳往 repository source／外部參考連結時才離開此檔案。修改 docs 後以 browser 檢查三種圖、replicas 控制、搜尋、鍵盤操作與窄螢幕捲動。</p>
+</article>
+<article class="doc" id="chapter-15" aria-label="Pi sandbox Helm chart"><div class="source">SOURCE / charts/pi-sandbox/README.md</div><h1>Pi sandbox Helm chart</h1>
+<p>在 Kubernetes 部署一個 OpenAI Agents SDK API 與多個長駐 Pi coding sandbox Pods。每個 worker 支援多個隔離 session，並支援閒置程序暫停與 ephemeral session 自動清理。</p>
+<h2>部署需求</h2>
+<ul>
+<li>Kubernetes <strong>1.33+</strong>、Helm 3、Linux worker nodes。</li>
+<li>節點、container runtime、kubelet 與 CSI 支援 Pod user namespaces／idmapped mounts，以及巢狀 Bubblewrap。1.33／1.34 需檢查相關 feature gates。</li>
+<li>Admission policy 允許 <code>hostUsers: false</code>、<code>procMount: Unmasked</code>、指定 capabilities，以及 Unconfined seccomp／AppArmor。此 Chart 不宣稱符合 restricted Pod Security policy。</li>
+<li>預先建置本專案 API 與 sandbox images，推送至叢集可存取的 registry。Python、skills、extensions 與 Pi packages 都在 image build 時安裝；Pod runtime 不下載套件。</li>
+<li>可動態建立 PVC 的相容 StorageClass；使用 NetworkPolicy 時需 CNI 支援。</li>
+</ul>
+<p>Worker supervisor 在 Pod user namespace 內以 root 運作，用於配置不同 session UID；生成程式以非 root UID 在 Bubblewrap 內執行。沒有 privileged、SYS_ADMIN、hostPath、host network 或 Docker socket。</p>
+<h2>快速安裝</h2>
+<p>以下指令從專案根目錄執行。Chart 尚未發布至 Helm repository／OCI registry，直接使用本機目錄。</p>
+<pre><code class="language-bash"># 先建置並推送兩個映像；請替換 registry 與固定版本 tag。
+docker build -f orchestrator/Dockerfile -t registry.example.internal/pi-api:uv-lifecycle-v1 .
+docker build -f sandbox/Dockerfile -t registry.example.internal/pi-worker:uv-lifecycle-v1 .
+docker push registry.example.internal/pi-api:uv-lifecycle-v1
+docker push registry.example.internal/pi-worker:uv-lifecycle-v1
+
+kubectl create namespace agents
+# 檔案需在 Git 外受保護的位置；四個 keys 見下方說明。
+kubectl -n agents create secret generic pi-sandbox-secrets \
+  --from-env-file=/secure/path/pi-secrets.env
+</code></pre>
+<p>另需預先建立外部 MongoDB 連線 Secret（預設 <code>pi-mongodb</code>）；本 chart 不部署 MongoDB。</p>
+<p>模型／控制平面的既有 Secret 必須包含 <code>API_TOKEN</code>、<code>SANDBOX_TOKEN</code>、<code>OPENAI_API_KEY</code>、<code>PI_API_KEY</code>。兩個控制 token 應不同；外層 Agent 與 Pi 使用各自的模型 key。Chart 只引用 Secret，不把秘密寫入 values 或 Helm release 設定；也不會讀取 Compose 的 <code>.env</code>。</p>
+<p>以 <a href="../charts/pi-sandbox/examples/internal.yaml">examples/internal.yaml</a> 為起點建立自己的 values，替換 image、模型 URL／model ID、StorageClass 與 egress IP。範例 <code>192.0.2.x</code> 是文件示意位址，不能直接使用。</p>
+<pre><code class="language-bash">helm lint charts/pi-sandbox --strict
+helm template demo charts/pi-sandbox -n agents --kube-version 1.33.0 \
+  -f /secure/path/internal-values.yaml &gt; /tmp/pi-manifests.yaml
+kubectl -n agents apply --dry-run=server -f /tmp/pi-manifests.yaml
+helm upgrade --install demo charts/pi-sandbox -n agents \
+  -f /secure/path/internal-values.yaml --wait --timeout 10m
+kubectl -n agents get pods,pvc
+kubectl -n agents port-forward service/demo-pi-api 8000:8000
+</code></pre>
+<p><code>/health</code> 與 <code>GET /sandboxes</code> 僅驗證 HTTP 健康。部署後應在每個 worker 明確建立 session、讀取 resources，並透過 <code>/pi/prompt</code> 執行 <code>/session-info</code> 驗證真正 Pi／Bubblewrap 啟動，再 DELETE 清理；此 extension command 不需模型 token。</p>
+<h2>架構與持久化</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>資源</th>
+<th>行為</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API StatefulSet</td>
+<td>固定 1 replica／1 Uvicorn process，state PVC 保存對話 SQLite；registry 在外部 MongoDB</td>
+</tr>
+<tr>
+<td>Worker StatefulSet</td>
+<td>預設 2 replicas，每個 ordinal 各有 state、sessions PVC</td>
+</tr>
+<tr>
+<td>Worker headless Service</td>
+<td>API 直連 Pod DNS，避免 session 被負載平衡到不同 worker</td>
+</tr>
+<tr>
+<td>API Service</td>
+<td>ClusterIP，port 8000；未內建 Ingress 或公開入口</td>
+</tr>
+<tr>
+<td>NetworkPolicy</td>
+<td>預設限制 ingress／egress，需自行允許內部模型與業務端點</td>
+</tr>
+</tbody>
+</table></div>
+<p>例如 release <code>demo</code>、namespace <code>agents</code>，worker ID 為 <code>demo-pi-workers-0</code>，路由為 <code>http://demo-pi-workers-0.demo-pi-workers.agents.svc:8080</code>。Chart 依 replicas 產生 <code>SANDBOX_ENDPOINTS</code>。API 不需 Kubernetes API 權限，Pods 不掛載 ServiceAccount token。</p>
+<p>不要增加 API replicas 或 Uvicorn workers；目前協調鎖仍在程序內。不要更換 release／namespace／worker 身分而期待舊 binding 自動遷移。</p>
+<h2>設定參考</h2>
+<p>完整來源：<a href="../charts/pi-sandbox/values.yaml">values.yaml</a>。所有設定可覆寫；有預設不代表預設 image、模型認證或網路可直接用於公司部署。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>設定</th>
+<th>預設</th>
+<th>說明／建議</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>images.api.repository</code></td>
+<td><code>pi-agents-sample-api</code></td>
+<td>替換成已推送的 API image</td>
+</tr>
+<tr>
+<td><code>images.sandbox.repository</code></td>
+<td><code>pi-agents-sample-sandbox-1</code></td>
+<td>替換成已推送的 worker image</td>
+</tr>
+<tr>
+<td><code>images.*.tag</code></td>
+<td><code>latest</code></td>
+<td>公司部署使用不可變版本 tag</td>
+</tr>
+<tr>
+<td><code>images.*.pullPolicy</code></td>
+<td><code>IfNotPresent</code></td>
+<td>配合固定 tag；依公司 policy 調整</td>
+</tr>
+<tr>
+<td><code>imagePullSecrets</code></td>
+<td><code>[]</code></td>
+<td>私有 registry 認證，例如 <code>[{name: registry-credentials}]</code></td>
+</tr>
+<tr>
+<td><code>existingSecret</code></td>
+<td><code>pi-sandbox-secrets</code></td>
+<td>必須預先建立並包含四個 keys，沒有內建可用認證</td>
+</tr>
+<tr>
+<td><code>api.baseUrl</code> / <code>sandbox.baseUrl</code></td>
+<td>空字串</td>
+<td>內部部署兩邊都必須填入完整 API prefix，例如 <code>/v1</code></td>
+</tr>
+<tr>
+<td><code>api.model</code> / <code>sandbox.model</code></td>
+<td><code>gpt-4.1-mini</code></td>
+<td>分別替換成支援工具呼叫的實際 model ID</td>
+</tr>
+<tr>
+<td><code>api.apiMode</code></td>
+<td><code>responses</code></td>
+<td>內部端點通常明確改成 <code>chat_completions</code></td>
+</tr>
+<tr>
+<td><code>sandbox.apiMode</code></td>
+<td><code>chat_completions</code></td>
+<td>依 Pi gateway 協定設定</td>
+</tr>
+<tr>
+<td><code>sandbox.contextWindow</code></td>
+<td><code>128000</code></td>
+<td>依實際模型上限設定</td>
+</tr>
+<tr>
+<td><code>sandbox.maxTokens</code></td>
+<td><code>4096</code></td>
+<td>每次模型回應上限，不是整個 run 的 token budget</td>
+</tr>
+<tr>
+<td><code>sandbox.modelCompat</code></td>
+<td><code>{}</code></td>
+<td>僅在 gateway 需要時設定，例如 streaming usage 相容性</td>
+</tr>
+<tr>
+<td><code>sandbox.replicas</code></td>
+<td><code>2</code></td>
+<td>可設定 1–100；擴縮容需遵循下節流程</td>
+</tr>
+<tr>
+<td><code>sandbox.maxSessions</code></td>
+<td><code>8</code></td>
+<td>每 Pod 名額；初次公司部署建議從 2 開始量測</td>
+</tr>
+<tr>
+<td><code>api.resources</code></td>
+<td>requests <code>100m/256Mi</code>；limits <code>1 CPU/1Gi</code></td>
+<td>API Pod 資源</td>
+</tr>
+<tr>
+<td><code>sandbox.resources</code></td>
+<td>requests <code>250m/512Mi</code>；limits <code>2 CPU/2Gi</code></td>
+<td>整個 worker Pod 共用，非每 session 配額</td>
+</tr>
+<tr>
+<td><code>sandbox.nodeSelector</code></td>
+<td>Linux nodes</td>
+<td>可補公司 sandbox node pool labels</td>
+</tr>
+<tr>
+<td><code>sandbox.tolerations</code></td>
+<td><code>[]</code></td>
+<td>依專用節點 taints 設定</td>
+</tr>
+<tr>
+<td><code>sandbox.securityContext</code></td>
+<td>見 values.yaml</td>
+<td>不應為通過 admission 而移除必要隔離設定</td>
+</tr>
+<tr>
+<td><code>persistence.storageClass</code></td>
+<td>空字串</td>
+<td>使用叢集預設；需驗證 CSI userns 支援</td>
+</tr>
+<tr>
+<td><code>persistence.apiSize</code></td>
+<td><code>1Gi</code></td>
+<td>API state PVC</td>
+</tr>
+<tr>
+<td><code>persistence.workerStateSize</code></td>
+<td><code>1Gi</code></td>
+<td>每 worker metadata PVC</td>
+</tr>
+<tr>
+<td><code>persistence.workerSessionsSize</code></td>
+<td><code>10Gi</code></td>
+<td>每 worker session 檔案 PVC</td>
+</tr>
+<tr>
+<td><code>lifecycle.cleanupIntervalSeconds</code></td>
+<td><code>60</code></td>
+<td>API／worker 背景 sweep；0 關閉</td>
+</tr>
+<tr>
+<td><code>lifecycle.ephemeralIdleTtlSeconds</code></td>
+<td><code>3600</code></td>
+<td>新 ephemeral session 的預設 TTL，必須大於 0</td>
+</tr>
+<tr>
+<td><code>lifecycle.piIdleDisconnectSeconds</code></td>
+<td><code>300</code></td>
+<td>暫停閒置 Pi 程序、保留資料；0 關閉</td>
+</tr>
+<tr>
+<td><code>promptTimeoutSeconds</code></td>
+<td><code>180</code></td>
+<td>每次 Pi prompt timeout</td>
+</tr>
+<tr>
+<td><code>terminationGracePeriodSeconds</code></td>
+<td><code>240</code></td>
+<td>Pod 終止寬限期，不能取代先等待工作完成</td>
+</tr>
+<tr>
+<td><code>networkPolicy.enabled</code></td>
+<td><code>true</code></td>
+<td>必須有支援 NetworkPolicy 的 CNI</td>
+</tr>
+<tr>
+<td><code>networkPolicy.apiEgress</code></td>
+<td><code>[]</code></td>
+<td>額外允許 API 到模型 gateway 的規則</td>
+</tr>
+<tr>
+<td><code>networkPolicy.sandboxEgress</code></td>
+<td><code>[]</code></td>
+<td>額外允許 Pi gateway、MinIO 等業務端點</td>
+</tr>
+</tbody>
+</table></div>
+<p>預設 NetworkPolicy 允許同 namespace client 到 API、API 到本 release workers，以及 kube-system CoreDNS；沒有預設模型外連權限。CIDR 規則不是 FQDN allowlist，NodeLocal DNS、NAT、公司 CA 必須由平台確認。不同 session 共用 Pod 的網路政策。</p>
+<h2>External MongoDB 與 Vault Secret</h2>
+<p>公司 Vault 流程先同步 Kubernetes Secret，再由 Chart 的 <code>secretKeyRef</code> 注入 API env。Chart 不安裝 Vault controller，也不在 values 中保存 DB 認證。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>設定</th>
+<th>預設</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mongodb.existingSecret</code></td>
+<td><code>pi-mongodb</code></td>
+<td>同 namespace 的 Vault 同步 Secret</td>
+</tr>
+<tr>
+<td><code>mongodb.uriKey</code></td>
+<td><code>MONGODB_URI</code></td>
+<td>必填 Secret key，完整 URI／SRV URI</td>
+</tr>
+<tr>
+<td><code>mongodb.usernameKey</code></td>
+<td><code>MONGODB_USERNAME</code></td>
+<td>選填；若 URI 已含帳密可省略</td>
+</tr>
+<tr>
+<td><code>mongodb.passwordKey</code></td>
+<td><code>MONGODB_PASSWORD</code></td>
+<td>選填；與 username 一起提供或省略</td>
+</tr>
+<tr>
+<td><code>mongodb.database</code></td>
+<td><code>pi_agents</code></td>
+<td>實際 database，與 URI path 獨立</td>
+</tr>
+<tr>
+<td><code>mongodb.authSource</code></td>
+<td><code>admin</code></td>
+<td>使用獨立 username/password 時的認證 database</td>
+</tr>
+<tr>
+<td><code>mongodb.timeoutMS</code></td>
+<td><code>5000</code></td>
+<td>正整數，連線／選擇 server／socket timeout</td>
+</tr>
+<tr>
+<td><code>mongodb.tlsCASecret</code></td>
+<td>空字串</td>
+<td>optional CA Secret，key 為 ca.crt，唯讀掛載到 API</td>
+</tr>
+</tbody>
+</table></div>
+<p>必須在 <code>networkPolicy.apiEgress</code> 允許所有 MongoDB replica-set 成員與 DNS；不需給 worker DB 網路或認證。Vault 輪替 Secret 不會更新既有 Pod env，需依 OnDelete 流程重建 API Pod。API <code>/ready</code> 會 ping DB，<code>/health</code> 只檢查程序存活。</p>
+<p>API 仍不可增加副本，外層 SQLiteSession 對話與 worker SQLite UID metadata 獨立保存。</p>
+<h2>Session 自動清理</h2>
+<p>建立 session 時預設 <code>retention: managed</code>，只有明確 DELETE 才刪除。一次性工作可使用：</p>
+<pre><code class="language-json">{&quot;retention&quot;:&quot;ephemeral&quot;,&quot;idle_ttl_seconds&quot;:3600}
+</code></pre>
+<p>POST 至 <code>/agents/{agent_id}/sessions</code>，可另外指定 <code>sandbox_id</code>。PATCH <code>/agents/{agent_id}/sessions/{session_id}/retention</code> 可切換策略。省略 TTL 時使用 chart 設定的預設；舊 sessions 維持 managed。</p>
+<p>兩種策略都可以暫停閒置 Pi 程序，保留 workspace／venv／歷史，下次操作自動恢復。暫停也會終止 namespace 中的背景子程序；需要常駐子程序時設定 <code>piIdleDisconnectSeconds: 0</code>。暫停不釋放 session 名額或磁碟，只有完整刪除才釋放。</p>
+<p>TTL 清理會跳過忙碌 Agent／session，失敗時保留 <code>deleting</code> 記錄供後續重試。帶 API token 呼叫 <code>POST /sessions/cleanup?dry_run=true</code> 預覽，<code>dry_run=false</code> 實際清理，<code>GET /sessions/cleanup</code> 查看最近結果。此為全域管理操作，沒有額外多租戶 RBAC。</p>
+<p>刪除會移除生成程式、Pi transcript 與 session 本地套件，不會自動備份；需要證據時先匯出。API Agent 記錄、外層對話歷史與 PVC 不會隨 session TTL 刪除。</p>
+<h2>升級、擴縮容與解除安裝</h2>
+<p>兩個 StatefulSets 都是 <strong>OnDelete</strong>，<code>helm upgrade --wait</code> 不會自動替換既有 Pods：</p>
+<ol>
+<li>升級 image／values／Secret 前，停止新工作並等待正在執行的工作完成。</li>
+<li>Helm upgrade 後，明確刪除受影響 Pods，由 StatefulSet 使用原 PVC 和新 template 重建。</li>
+<li>檢查所有 worker 健康、Pi session 能恢復，再恢復流量。</li>
+</ol>
+<p>擴容時先增加 replicas，等待新 worker Ready，再於無進行中工作時重建 API Pod，讓 API 採用新增 endpoints。縮容前必須停止新配置，先清理最高 ordinal 上所有 sessions／待刪 binding，再降低 replicas 並重建 API。沒有自動 drain、遷移或 HPA。</p>
+<p>PVC 使用 <strong>Retain</strong>：縮容與 <code>helm uninstall demo -n agents</code> 不會刪除 PVC。若先縮容卻保留 binding，請恢復原 ordinal 與 PVC；不能把資料默默轉派到別的 worker。只有確認備份與保留政策後才人工刪除 PVC。</p>
+<h2>驗證與進一步文件</h2>
+<p>從專案根目錄執行：</p>
+<pre><code class="language-bash">make lint-helm
+make test-container
+</code></pre>
+<p><code>lint-helm</code> 檢查 chart、1／3 workers 的渲染與路由／PVC／Secret／NetworkPolicy，以及非法 values；容器測試驗證真正 Pi 的隔離、暫停、恢復與清理，不呼叫付費模型。</p>
+<p>目前通過 Helm 渲染、Kubernetes 1.33 schema 與無外網容器測試；<strong>尚未完成真實叢集安裝驗證</strong>。實際叢集仍須 server dry-run 及逐 worker Pi 啟動驗證。</p>
+<p>本專案內另有 <a href="#chapter-13">完整 Kubernetes 手冊</a>、<a href="#chapter-9">Session 生命週期</a>、<a href="#chapter-11">環境設定</a> 與 <a href="#chapter-10">執行證據／token tracing</a>。</p>
+<p>MongoDB 設計文件：<a href="#chapter-5">Schema 與 index design</a>、<a href="#chapter-6">Registry 架構設計</a>。Document models 使用 Pydantic，來源為 <a href="../orchestrator/documents.py"><code>orchestrator/documents.py</code></a>。</p>
+<p>完整 <a href="#chapter-1">部署 overview diagrams</a> 與 <a href="#overview">離線互動架構手冊</a> 涵蓋 API、worker Pods、PVC、Service、NetworkPolicy，以及公司提供的 MongoDB／Vault／模型服務。</p>
+</article>
+<footer>Pi coding agent sandbox · 本文件由 make docs 產生。部署、安全與效能邊界以本文與目前程式碼為準；圖中的 replicas 不會修改系統。</footer>
+</main></div>
+<script id="topology" type="application/json">{"compose": {"title": "Docker Compose", "summary": "4 個長駐服務 · 2 個 sandbox · Pi sessions 按需建立", "height": 1060, "nodes": [{"id": "client", "label": "Client / demo scripts", "sub": "host loopback :8000", "x": 30, "y": 60, "detail": "API_TOKEN → API；smoke / resources demo 可不呼叫模型。只有 api port 發布到 host。", "kind": "external"}, {"id": "api", "label": "api :8000", "sub": "SDK + SessionManager", "x": 410, "y": 60, "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。", "kind": "service"}, {"id": "outer", "label": "Outer model endpoint", "sub": "OPENAI_*", "x": 790, "y": 60, "detail": "外部模型 endpoint，由 OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 設定。可與 Pi gateway 不同；不由 Compose 或 Helm 部署。", "kind": "external"}, {"id": "mongo", "label": "mongodb :27017", "sub": "MongoDB 8.0.16", "x": 30, "y": 280, "detail": "只保存 agents 與 bindings；Pydantic 驗證 documents，索引支援 Agent session 排序與 cleanup。沒有 TTL index；worker 成功刪除後才移除 binding。MONGODB_URI 必填，DB 憑證僅給 API。", "kind": "service"}, {"id": "w0", "label": "sandbox-1 :8080", "sub": "Worker supervisor", "x": 410, "y": 280, "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。", "kind": "service"}, {"id": "w1", "label": "sandbox-2 :8080", "sub": "Worker supervisor", "x": 790, "y": 280, "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。", "kind": "service"}, {"id": "dbdata", "label": "mongodb-data", "sub": "/data/db", "x": 30, "y": 500, "detail": "本機 mongod 持久化 volume；1 GiB container memory / 0.25 GiB WiredTiger cache。未發布 MongoDB host port。", "kind": "storage"}, {"id": "p0", "label": "Pi sessions A / B", "sub": "按需建立 · 獨立 UID", "x": 410, "y": 500, "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。", "kind": "service"}, {"id": "p1", "label": "Pi sessions C / D", "sub": "按需建立 · 獨立 UID", "x": 790, "y": 500, "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。", "kind": "service"}, {"id": "history", "label": "agent-state", "sub": "API /state", "x": 30, "y": 720, "detail": "只存外層 SDK conversation history（conversations.sqlite）；不是 session registry。API 重啟後依 agent_id 延續對話。", "kind": "storage"}, {"id": "v0", "label": "sandbox-1 data + state", "sub": "/sessions + /state", "x": 410, "y": 720, "detail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/\u003cid>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。", "kind": "storage"}, {"id": "v1", "label": "sandbox-2 data + state", "sub": "/sessions + /state", "x": 790, "y": 720, "detail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/\u003cid>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。", "kind": "storage"}, {"id": "pimodel", "label": "Pi model endpoint", "sub": "PI_* · shared network", "x": 410, "y": 930, "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。", "kind": "external"}], "edges": [{"source": "client", "target": "api", "kind": "request"}, {"source": "api", "target": "outer", "kind": "model"}, {"source": "api", "target": "mongo", "kind": "request"}, {"source": "api", "target": "w0", "kind": "request"}, {"source": "api", "target": "w1", "kind": "request"}, {"source": "mongo", "target": "dbdata", "kind": "storage"}, {"source": "api", "target": "history", "kind": "storage"}, {"source": "w0", "target": "p0", "kind": "request"}, {"source": "w1", "target": "p1", "kind": "request"}, {"source": "w0", "target": "v0", "kind": "storage"}, {"source": "w1", "target": "v1", "kind": "storage"}, {"source": "p0", "target": "pimodel", "kind": "model"}, {"source": "p1", "target": "pimodel", "kind": "model"}]}, "k8s": {"title": "Kubernetes Helm", "summary": "單 API + 多 worker · 外部 MongoDB / 模型 / Vault", "height": 1230, "nodes": [{"id": "client", "label": "Client / port-forward", "sub": "同 namespace / 管理入口", "x": 30, "y": 60, "detail": "Chart 不部署 Ingress 或 LoadBalancer。預設 API ingress 允許同 namespace Pods。", "kind": "external"}, {"id": "service", "label": "demo-pi-api", "sub": "ClusterIP Service :8000", "x": 410, "y": 60, "detail": "Service 導向單一 API Pod；不具備 session 排程或 Agent 邏輯。", "kind": "service"}, {"id": "outer", "label": "Internal outer gateway", "sub": "api.baseUrl / model", "x": 790, "y": 60, "detail": "外部模型 endpoint，由 OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 設定。可與 Pi gateway 不同；不由 Compose 或 Helm 部署。", "kind": "external"}, {"id": "mongo", "label": "External MongoDB", "sub": "不由 Chart 部署", "x": 30, "y": 280, "detail": "只保存 agents 與 bindings；Pydantic 驗證 documents，索引支援 Agent session 排序與 cleanup。沒有 TTL index；worker 成功刪除後才移除 binding。MONGODB_URI 必填，DB 憑證僅給 API。 需允許所有 replica-set 成員與 DNS egress。", "kind": "external"}, {"id": "api", "label": "demo-pi-api-0", "sub": "StatefulSet · 1 replica", "x": 410, "y": 280, "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。 OnDelete / Retain；UID 1000。", "kind": "service"}, {"id": "secrets", "label": "Existing Secrets", "sub": "env + optional CA mount", "x": 790, "y": 280, "detail": "應用 Secret：API_TOKEN、SANDBOX_TOKEN、OPENAI_API_KEY、PI_API_KEY。DB Secret：MONGODB_URI 與成對 optional username/password；CA Secret 可選。Secret env 變更需重建 Pod。", "kind": "config"}, {"id": "history", "label": "API state PVC", "sub": "1 GiB · Retain", "x": 30, "y": 500, "detail": "只存外層 SDK conversation history（conversations.sqlite）；不是 session registry。API 重啟後依 agent_id 延續對話。", "kind": "storage"}, {"id": "headless", "label": "demo-pi-workers", "sub": "Headless Service :8080", "x": 410, "y": 500, "detail": "提供 ordinal Pod DNS；API 的 SANDBOX_ENDPOINTS 逐一列出 Pod URL，不將有狀態 session 請求隨機負載平衡。", "kind": "config"}, {"id": "vault", "label": "Vault + sync controller", "sub": "公司平台預先提供", "x": 790, "y": 500, "detail": "Chart 不安裝 Vault operator。公司既有機制把 secret 同步至 Kubernetes Secret，再由 Pod env 引用。", "kind": "external"}, {"id": "dns", "label": "Cluster DNS", "sub": "kube-system :53", "x": 30, "y": 1100, "detail": "平台提供的 DNS；預設 NetworkPolicy 允許 TCP/UDP 53 到 kube-system / kube-dns label。實際 CNI 與 DNS labels 需平台確認。", "kind": "external"}, {"id": "pimodel", "label": "Internal Pi gateway", "sub": "sandbox.baseUrl / model", "x": 410, "y": 1100, "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。", "kind": "external"}, {"id": "policy", "label": "NetworkPolicies × 2", "sub": "API / worker ingress + egress", "x": 790, "y": 1100, "detail": "預設允許 DNS、同 namespace → API、API → worker。MongoDB、model gateway、MinIO 需自行加入 egress。Workers 共用 Pod 網路，沒有 per-session policy。", "kind": "config"}], "edges": [{"source": "client", "target": "service", "kind": "request"}, {"source": "service", "target": "api", "kind": "request"}, {"source": "api", "target": "outer", "kind": "model"}, {"source": "api", "target": "mongo", "kind": "request"}, {"source": "api", "target": "history", "kind": "storage"}, {"source": "vault", "target": "secrets", "kind": "config"}, {"source": "secrets", "target": "api", "kind": "config"}, {"source": "api", "target": "headless", "kind": "config"}, {"source": "api", "target": "dns", "kind": "config"}]}, "session": {"title": "Session isolation", "summary": "個別 UID / filesystem / PID · 共用 Pod 網路與資源", "height": 930, "nodes": [{"id": "api", "label": "API / SessionManager", "sub": "HTTP + Agent lock", "x": 30, "y": 60, "detail": "單一 Uvicorn process；Agents SDK + SessionManager + Agent locks + cleanup task。API_TOKEN 驗證入口。OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL 控制外層模型。/ready ping MongoDB，/health 為程序存活。", "kind": "service"}, {"id": "supervisor", "label": "Worker supervisor", "sub": "root · HTTP :8080", "x": 410, "y": 60, "detail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。 root 不直接執行生成程式。", "kind": "service"}, {"id": "state", "label": "Worker state", "sub": "UID slot / activity", "x": 790, "y": 60, "detail": "/state/worker.sqlite 僅給 supervisor，不掛入 session namespace。", "kind": "storage"}, {"id": "a", "label": "Session A", "sub": "UID = 10000 + slot A", "x": 180, "y": 300, "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。", "kind": "service"}, {"id": "b", "label": "Session B", "sub": "UID = 10000 + slot B", "x": 670, "y": 300, "detail": "Pi JSONL RPC subprocess 與生成 Python 在 session UID + Bubblewrap 裡執行；只有該 session 的可寫 workspace。一般 prompt 等 agent_end；headless extension command 有無模型完成路徑。", "kind": "service"}, {"id": "aw", "label": "A workspace / HOME / venv", "sub": "private /tmp /proc", "x": 180, "y": 530, "detail": "/sessions/A/data → /workspace；venv --system-site-packages。只有 A 可以修改；B 的目錄不掛載。", "kind": "storage"}, {"id": "bw", "label": "B workspace / HOME / venv", "sub": "private /tmp /proc", "x": 670, "y": 530, "detail": "/sessions/B/data → /workspace；與 A 相同的相對檔名也不會共享可寫檔案。", "kind": "storage"}, {"id": "image", "label": "Read-only image runtime", "sub": "Python 3.12 + Pi + seeds", "x": 30, "y": 780, "detail": "/usr、/opt/pi、/opt/pi-resources、/opt/python-runtime 唯讀；/opt/server 與 supervisor state 不可見。Python packages 在 image build 預裝。", "kind": "storage"}, {"id": "network", "label": "Shared Pod / container network", "sub": "不是 per-session network isolation", "x": 410, "y": 780, "detail": "Bubblewrap 不 unshare network。Sessions 可連往同一 Pod 允許的目的地，模型 key 在各 session env 中可讀。", "kind": "config"}, {"id": "model", "label": "Pi model endpoint", "sub": "內部可達模型 gateway", "x": 790, "y": 780, "detail": "外部 Pi 模型 endpoint，由 PI_BASE_URL / PI_API_KEY / PI_MODEL 設定。公司內網使用 OpenAI-compatible tools / streaming transport；無 public package network 不代表無模型連線。", "kind": "external"}], "edges": [{"source": "api", "target": "supervisor", "kind": "request"}, {"source": "supervisor", "target": "state", "kind": "storage"}, {"source": "supervisor", "target": "a", "kind": "request"}, {"source": "supervisor", "target": "b", "kind": "request"}, {"source": "a", "target": "aw", "kind": "storage"}, {"source": "b", "target": "bw", "kind": "storage"}, {"source": "image", "target": "a", "kind": "config"}, {"source": "image", "target": "b", "kind": "config"}, {"source": "a", "target": "network", "kind": "model"}, {"source": "b", "target": "network", "kind": "model"}, {"source": "network", "target": "model", "kind": "model"}]}, "steps": [{"title": "授權與 session 範圍", "text": "API 取得 Agent lock，讀取 MongoDB ready bindings，建立當次 allowed session IDs。", "nodes": ["client", "api", "mongo", "service"]}, {"title": "外層模型委派", "text": "SDK 讀取 history；外層模型呼叫 run_python_in_sandbox，session_id 受 enum 與工具檢查約束。", "nodes": ["api", "outer", "history"]}, {"title": "送到固定 worker", "text": "SessionManager 依 sandbox_id 選 endpoint，HTTP 使用 SANDBOX_TOKEN；worker 取得 session lock。", "nodes": ["api", "w0", "supervisor"]}, {"title": "Pi 生成程式", "text": "Pi 收到 JSONL prompt，向自己的模型 gateway 發送 skill / instructions / tools，取得 write 與 bash 工具呼叫。", "nodes": ["w0", "p0", "a", "pimodel", "model"]}, {"title": "Python 在隔離環境執行", "text": "使用 session venv 的 Python 3.12，讀取 image 預裝套件，在自己的 workspace 寫入 code / artifacts。", "nodes": ["p0", "v0", "a", "aw", "image"]}, {"title": "完成與回傳", "text": "等待 agent_end（無模型 extension command 另有路徑）；output / tool_results 回到 SDK，再由外層模型整合。", "nodes": ["p0", "w0", "api", "outer", "a", "supervisor"]}, {"title": "保留證據與回收", "text": "HTTP response、Pi transcript、outer history 與 artifacts 供 collect。暫停 Pi 保留資料；ephemeral cleanup 先刪 worker，再刪 binding。", "nodes": ["history", "mongo", "v0", "aw", "state"]}], "workerDetail": "一個 supervisor process 管理多個 Pi sessions。SANDBOX_TOKEN 保護 HTTP；session locks 序列化操作，MAX_SESSIONS 預設 8。Pi 程序可暫停，workspace / HOME / venv / transcript 留在 volume。", "volumeDetail": "每個 worker 都有 state 與 sessions 兩份儲存：/state/worker.sqlite 記錄 UID slot / last_activity；/sessions/\u003cid>/data 是各自的 workspace。刪 session 會刪該目錄；暫停 Pi 不刪檔。"}</script>
+<script>
+'use strict';
+const data=JSON.parse(document.getElementById('topology').textContent);
+const ns='http://www.w3.org/2000/svg';
+let current='compose',step=0;
+const graphs={};
+function svgEl(tag,attrs={},text){const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;return el;}
+function model(key){const g=structuredClone(data[key]);if(key==='k8s'){const n=Number(document.getElementById('replicas').value);for(let i=0;i<n;i++){const x=(1120-n*260-(n-1)*10)/2+i*270;g.nodes.push({id:'w'+i,label:'demo-pi-workers-'+i,sub:'Pod · Pi sessions 按需建立',x,y:720,kind:'service',detail:data.workerDetail+' 此 Pod 保留 ordinal '+i+'，使用獨立 state / sessions PVCs。'});g.nodes.push({id:'v'+i,label:'Worker '+i+' PVCs',sub:'state 1 GiB + sessions 10 GiB',x,y:920,kind:'storage',detail:data.volumeDetail});for(const [source,target,kind] of [['api','w'+i,'request'],['headless','w'+i,'config'],['secrets','w'+i,'config'],['w'+i,'v'+i,'storage'],['w'+i,'pimodel','model'],['w'+i,'dns','config']])g.edges.push({source,target,kind});}g.summary=`1 API Pod + ${n} worker Pods · ${1+2*n} PVCs · 最多 ${n*8} sessions（預設每 worker 8，非效能承諾）`;document.getElementById('capacity').textContent=' '+g.summary;}return g;}
+function path(a,b){const w=260,h=80;if(a.y===b.y){return a.x<b.x?`M ${a.x+w} ${a.y+h/2} L ${b.x} ${b.y+h/2}`:`M ${a.x} ${a.y+h/2} L ${b.x+w} ${b.y+h/2}`;}if(a.x===b.x&&Math.abs(a.y-b.y)<=240){return a.y<b.y?`M ${a.x+w/2} ${a.y+h} L ${b.x+w/2} ${b.y}`:`M ${a.x+w/2} ${a.y} L ${b.x+w/2} ${b.y+h}`;}const down=a.y<b.y;const lane=Math.min(a.x+w+7,1110);const endY=down?b.y-25:b.y+h+25;return `M ${a.x+w} ${a.y+h/2} H ${lane} V ${endY} H ${b.x+w/2} V ${down?b.y:b.y+h}`;}
+function render(key){const g=model(key);graphs[key]=g;let panel=document.getElementById('graph-'+key);if(!panel){panel=document.createElement('section');panel.id='graph-'+key;panel.className='graph-panel';document.getElementById('graphs').append(panel);}panel.replaceChildren();panel.hidden=key!==current;const h=document.createElement('h3');h.textContent=g.title;panel.append(h);const p=document.createElement('p');p.className='caption';p.textContent=g.summary;panel.append(p);const box=document.createElement('div');box.className='canvas';panel.append(box);const svg=svgEl('svg',{viewBox:`0 0 1120 ${g.height}`,class:'diagram',role:'group','aria-label':g.title+' 互動架構圖'});svg.append(svgEl('title',{},g.title));svg.append(svgEl('desc',{},g.summary+'。點選元件查看職責；下方可展開文字連線清單。'));const defs=svgEl('defs');const marker=svgEl('marker',{id:'arrow-'+key,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});marker.append(svgEl('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#869991'}));defs.append(marker);svg.append(defs);for(const e of g.edges){const a=g.nodes.find(n=>n.id===e.source),b=g.nodes.find(n=>n.id===e.target);const el=svgEl('path',{d:path(a,b),class:'edge '+e.kind,'marker-end':`url(#arrow-${key})`,'data-source':e.source,'data-target':e.target});svg.append(el);}for(const n of g.nodes){const el=svgEl('g',{class:'node '+n.kind,role:'button',tabindex:0,'aria-label':n.label+'：'+n.sub,'data-node':n.id,transform:`translate(${n.x},${n.y})`});el.append(svgEl('rect',{width:260,height:80,rx:8}));el.append(svgEl('text',{x:16,y:32,class:'name'},n.label));el.append(svgEl('text',{x:16,y:57,class:'sub'},n.sub));el.addEventListener('click',()=>selectNode(n));el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectNode(n);}});svg.append(el);}box.append(svg);}
+function highlight(ids){const panel=document.getElementById('graph-'+current);panel.querySelectorAll('.node').forEach(n=>n.classList.toggle('active',ids.includes(n.dataset.node)));panel.querySelectorAll('.edge').forEach(e=>{const active=ids.includes(e.dataset.source)||ids.includes(e.dataset.target);e.classList.toggle('active',ids.length>0&&active);e.classList.toggle('dim',ids.length>0&&!active);});}
+function selectNode(n){document.getElementById('kind').textContent={external:'外部服務',storage:'持久化 / 資料',config:'設定與網路',service:'運行元件'}[n.kind];document.getElementById('node-title').textContent=n.label;document.getElementById('node-detail').textContent=n.detail;highlight([n.id]);}
+function connections(){const ul=document.getElementById('connections');ul.replaceChildren();const g=graphs[current];for(const e of g.edges){const li=document.createElement('li');li.textContent=g.nodes.find(n=>n.id===e.source).label+' → '+g.nodes.find(n=>n.id===e.target).label+'（'+{request:'HTTP / RPC',model:'模型連線',storage:'儲存',config:'設定 / DNS'}[e.kind]+'）';ul.append(li);}}
+function updateStep(){const s=data.steps[step];document.getElementById('step-text').textContent=s.title+'：'+s.text;document.getElementById('step-count').textContent=`${step+1} / ${data.steps.length}`;document.getElementById('prev').disabled=step===0;document.getElementById('next').disabled=step===data.steps.length-1;highlight(s.nodes);}
+function changeView(key){current=key;document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===key)));document.querySelectorAll('.graph-panel').forEach(p=>p.hidden=p.id!=='graph-'+key);document.getElementById('worker-control').hidden=key!=='k8s';connections();selectNode(graphs[key].nodes.find(n=>n.id==='api'));highlight([]);}
+for(const key of ['compose','k8s','session'])render(key);changeView('compose');updateStep();highlight([]);
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>changeView(b.dataset.view)));
+document.getElementById('replicas').addEventListener('change',()=>{render('k8s');connections();selectNode(graphs.k8s.nodes.find(n=>n.id==='api'));highlight([]);});
+document.getElementById('prev').addEventListener('click',()=>{step=Math.max(0,step-1);updateStep();});document.getElementById('next').addEventListener('click',()=>{step=Math.min(data.steps.length-1,step+1);updateStep();});document.getElementById('clear').addEventListener('click',()=>highlight([]));document.getElementById('print').addEventListener('click',()=>window.print());
+document.addEventListener('click',e=>{const a=e.target.closest('a');if(a&&a.getAttribute('href')?.startsWith('#chapter-')&&document.getElementById(a.hash.slice(1))?.hidden){document.getElementById('search').value='';document.getElementById('search').dispatchEvent(new Event('input'));}});
+const chapters=[...document.querySelectorAll('.doc')];document.getElementById('search').addEventListener('input',e=>{const q=e.target.value.trim().toLocaleLowerCase();let count=0;for(const chapter of chapters){const match=!q||chapter.textContent.toLocaleLowerCase().includes(q);chapter.hidden=!match;document.querySelector(`nav a[href="#${chapter.id}"]`).hidden=!match;if(match)count++;}document.getElementById('search-status').textContent=q?`${count} 個符合章節`:'';document.getElementById('empty').hidden=count!==0;});
+</script>
+</body></html>

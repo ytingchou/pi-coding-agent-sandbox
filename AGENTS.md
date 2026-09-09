@@ -75,3 +75,9 @@
 
 - Registry documents and lifecycle patches must use `orchestrator/documents.py`; validate merged updates, not `model_copy(update=...)`.
 - Preserve `_id` BSON / `id` API serialization. Keep document schema and index design docs synchronized with code.
+
+## Architecture handbook
+
+- Keep docs/architecture Markdown and topology.json aligned with runtime and deployment changes.
+- Run make docs after editing included documentation, then make docs-check. Commit the generated docs/architecture.html with its sources.
+- The HTML handbook must remain offline and self-contained; do not embed credentials, session evidence or external runtime assets.

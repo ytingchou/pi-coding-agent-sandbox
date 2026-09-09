@@ -94,3 +94,15 @@ Helm 模板由 `make lint-helm` 渲染後檢查，原始 Go templates 不直接�
 
 
 MongoDB registry 單元測試預設使用 mongomock；`make test-mongodb` 對 Compose 的真實 MongoDB 執行持久化／清理／document 驗證測試，CI 也執行。SDK 對話 SQLite 與 worker 本地 SQLite 不屬於 registry 儲存。詳見 [mongodb.md](mongodb.md)。
+
+## 架構文件維護
+
+架構 Markdown 位於 `docs/architecture/`，互動圖資料是 `topology.json`，UI 是 `template.html`。`docs` dependency group 僅提供 build-time Markdown renderer，不加入 runtime image 環境。
+
+```bash
+uv sync --locked --group docs
+make docs
+make docs-check
+```
+
+產生的 `docs/architecture.html` 應與來源一起提交；單檔內嵌完整手冊、SVG 與互動程式，不使用 CDN。只有跳往 repository source／外部參考連結時才離開此檔案。修改 docs 後以 browser 檢查三種圖、replicas 控制、搜尋、鍵盤操作與窄螢幕捲動。

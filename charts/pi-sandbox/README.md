@@ -166,3 +166,5 @@ make test-container
 本專案內另有 [完整 Kubernetes 手冊](../../docs/kubernetes.md)、[Session 生命週期](../../docs/session-lifecycle.md)、[環境設定](../../docs/configuration.md) 與 [執行證據／token tracing](../../docs/session-verification.md)。
 
 MongoDB 設計文件：[Schema 與 index design](../../docs/mongodb-schema.md)、[Registry 架構設計](../../docs/mongodb-registry-architecture.md)。Document models 使用 Pydantic，來源為 [`orchestrator/documents.py`](../../orchestrator/documents.py)。
+
+完整 [部署 overview diagrams](../../docs/architecture/deployment.md) 與 [離線互動架構手冊](../../docs/architecture.html) 涵蓋 API、worker Pods、PVC、Service、NetworkPolicy，以及公司提供的 MongoDB／Vault／模型服務。

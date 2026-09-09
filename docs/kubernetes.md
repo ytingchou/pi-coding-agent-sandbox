@@ -28,7 +28,7 @@ docker push registry.example.internal/pi-worker:uv-lifecycle-v1
 kubectl create namespace agents
 ```
 
-另外必須預先備妥外部 MongoDB 與 Vault 同步的 DB Secret（預設 `pi-mongodb`）；URI／username／password env、CA、egress、輪替和舊資料遷移見 [MongoDB 手冊](mongodb.md)。Chart 不建立 MongoDB。
+另外必須預先備妥外部 MongoDB 與 Vault 同步的 DB Secret（預設 `pi-mongodb`）；URI／username／password env、CA、egress與輪替見 [MongoDB 手冊](mongodb.md)。Chart 不建立 MongoDB。
 
 在該 namespace 以公司 Secret 管理流程建立 `pi-sandbox-secrets`，含四個必填 keys：`API_TOKEN`、`SANDBOX_TOKEN`、`OPENAI_API_KEY`、`PI_API_KEY`。兩個控制 token 應不同；外層模型與 Pi 模型 key 分別設定，Chart 不將外層 key 傳入 worker。Secret 可由 External Secrets／公司平台建立；Chart 不代建明文 Secret，避免放入 Helm release values。
 

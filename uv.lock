@@ -649,6 +649,9 @@ dev = [
     { name = "ruff" },
     { name = "yamllint" },
 ]
+docs = [
+    { name = "markdown-it-py" },
+]
 sandbox = [
     { name = "minio" },
     { name = "numpy" },
@@ -680,6 +683,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15,<0.16" },
     { name = "yamllint", specifier = ">=1.37,<2" },
 ]
+docs = [{ name = "markdown-it-py", specifier = "==4.2.0" }]
 sandbox = [
     { name = "minio", specifier = "==7.2.20" },
     { name = "numpy", specifier = "==2.2.6" },

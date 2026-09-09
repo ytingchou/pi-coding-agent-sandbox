@@ -31,3 +31,9 @@ lint-helm:
 .PHONY: test-mongodb
 test-mongodb:
 	docker compose -f compose.yaml -f compose.mongodb-test.yaml run --build --rm registry-test
+
+.PHONY: docs docs-check
+docs:
+	$(UV) run --locked --group docs python scripts/build_architecture_docs.py
+docs-check:
+	$(UV) run --locked --group docs python scripts/build_architecture_docs.py --check

@@ -19,6 +19,17 @@ flowchart LR
 
 Sandbox 使用 **Python 3.12**，在 image build 時用 pip／uv 預裝 requests、MinIO SDK 等套件，並把實際套件清單與離線政策注入 pi；session 直接使用唯讀 image 套件。外層與 pi 都支援內部 OpenAI 相容模型的 base URL／key／model 設定，詳見 [離線套件與內部模型部署](docs/python-packages.md)。
 
+## 架構設計文件
+
+從 [架構總覽](docs/architecture/README.md) 閱讀完整設計，或用瀏覽器開啟 [互動 HTML 手冊](docs/architecture.html)。HTML 可離線使用，內含 Compose／Kubernetes／session 隔離圖、元件說明、prompt 步驟導覽與完整文件搜尋；不會連線服務或呼叫模型。
+
+- [部署與服務 overview diagrams](docs/architecture/deployment.md)：四個 Compose 服務、Helm StatefulSets／Services／PVCs，以及外部 MongoDB、模型與 Vault 邊界。
+- [Agent／session 執行架構](docs/architecture/runtime.md)：雙層模型、JSONL RPC、保留／清理、證據與用量。
+- [安全與資源架構](docs/architecture/security.md)：UID／Bubblewrap、共享網路、離線套件與資源限制。
+- [架構決策](docs/architecture/decisions.md)：設計取捨、故障處理與演進前提。
+
+`make docs` 重建 HTML，`make docs-check` 確認與來源一致。開啟方式及文件維護見 [架構文件入口](docs/architecture/README.md)。
+
 ## 快速開始
 
 需要 Docker Engine / Docker Desktop 的 Linux containers 與 Docker Compose；第一次建置需要網路。主機不需要安裝 Python、Node.js 或 pi。

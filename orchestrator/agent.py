@@ -66,6 +66,9 @@ async def run_agent(manager, agent_id, prompt, session_ids=None, model=None, his
     history = SQLiteSession(agent_id, history_path)
     try:
         result = await Runner.run(agent, prompt, context=context, session=history, max_turns=12)
-        return {"agent_id": agent_id, "output": result.final_output, "sandbox_results": context.evidence}
+        usage = result.context_wrapper.usage
+        return {"agent_id": agent_id, "output": result.final_output, "sandbox_results": context.evidence,
+                "usage": {"requests": usage.requests, "input_tokens": usage.input_tokens,
+                          "output_tokens": usage.output_tokens, "total_tokens": usage.total_tokens}}
     finally:
         history.close()

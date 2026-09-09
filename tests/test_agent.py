@@ -49,6 +49,7 @@ async def test_real_agents_sdk_tool_loop_and_history(tmp_path):
     assert model.allowed_session_ids == ["session-a"]
     assert result["output"] == "Result: 42"
     assert result["sandbox_results"][0]["output"] == "42"
+    assert result["usage"]["requests"] == 2
     assert (tmp_path / "history.db").exists()
 
 

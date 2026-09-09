@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
+from agents.exceptions import AgentsException
 
 from orchestrator.agent import run_agent
 from orchestrator.session_manager import SessionManager
@@ -127,3 +128,11 @@ async def run(agent_id: UUID, body: RunRequest):
                                    [str(sid) for sid in body.session_ids] if body.session_ids is not None else None)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
+        except AgentsException as exc:
+            details = getattr(exc, "run_data", None)
+            usage = details.context_wrapper.usage if details else None
+            raise HTTPException(502, {
+                "error": type(exc).__name__,
+                "usage": {"requests": usage.requests, "input_tokens": usage.input_tokens,
+                          "output_tokens": usage.output_tokens, "total_tokens": usage.total_tokens} if usage else None,
+            }) from exc

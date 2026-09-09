@@ -12,7 +12,13 @@ async def main():
         async def post(path, payload):
             response = await client.post(path, json=payload)
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            if path.endswith("/run"):
+                executions = [tool for item in result["sandbox_results"] for tool in item["tool_results"]
+                              if tool["tool"] == "bash" and not tool.get("is_error")]
+                if not executions:
+                    raise RuntimeError("Demo step returned no successful bash execution evidence")
+            return result
         agent = (await post("/agents", {}))["agent_id"]
         sessions = [await post(f"/agents/{agent}/sessions", {"sandbox_id": name})
                     for name in ("sandbox-1", "sandbox-1", "sandbox-2")]

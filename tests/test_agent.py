@@ -13,6 +13,7 @@ class ScriptedModel(Model):
 
     async def get_response(self, *args, **kwargs):
         self.calls += 1
+        self.allowed_session_ids = kwargs["tools"][0].params_json_schema["properties"]["session_id"]["enum"]
         if self.calls == 1:
             output = [ResponseFunctionToolCall(
                 id="fc_test", call_id="call_test", type="function_call", name="run_python_in_sandbox",
@@ -40,9 +41,12 @@ async def test_real_agents_sdk_tool_loop_and_history(tmp_path):
 
         async def prompt(self, agent_id, session_id, prompt):
             assert (agent_id, session_id) == ("agent-a", "session-a")
+            assert prompt.startswith("Execute this task now")
             return {"output": "42", "tool_results": [{"tool": "bash", "result": "42"}]}
 
-    result = await run_agent(Manager(), "agent-a", "Compute 6 * 7", model=ScriptedModel("session-a"), history_path=str(tmp_path / "history.db"))
+    model = ScriptedModel("session-a")
+    result = await run_agent(Manager(), "agent-a", "Compute 6 * 7", model=model, history_path=str(tmp_path / "history.db"))
+    assert model.allowed_session_ids == ["session-a"]
     assert result["output"] == "Result: 42"
     assert result["sandbox_results"][0]["output"] == "42"
     assert (tmp_path / "history.db").exists()

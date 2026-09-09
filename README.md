@@ -140,6 +140,8 @@ curl -fsS -X POST "$BASE_URL/agents/$AGENT_ID/run" \
 
 ## 驗證
 
+可自行重跑真實模型驗證、匯出 session tracing／程式檔並計算兩層 token 用量：見 [Session 驗證與 tracing 操作手冊](docs/session-verification.md)。主機安裝 Python 3.10+ 後執行 `python3 scripts/verify_sessions.py verify`；報告預設保存在 Git 忽略的 `artifacts/`。
+
 ```bash
 docker compose build
 # 真正的 Agents SDK tool loop（以 scripted model 避免使用 API）、路由與復原測試

@@ -5,3 +5,6 @@ __pycache__/
 *.pyc
 node_modules/
 *.egg-info/
+
+# Local session evidence may include prompts and generated source
+artifacts/

@@ -8,6 +8,17 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap ca-certificates procps git ripgrep \
     && rm -rf /var/lib/apt/lists/*
+# Only application dependencies belong in the shared, read-only base Python.
+# Supervisor dependencies remain in /opt/server and are never mounted into sessions.
+ARG PYTHON_PACKAGE_INSTALLER=uv
+COPY sandbox/python-requirements.txt /opt/python-runtime/requirements.txt
+RUN case "$PYTHON_PACKAGE_INSTALLER" in \
+      uv) uv pip install --system --no-cache -r /opt/python-runtime/requirements.txt ;; \
+      pip) python3.12 -m pip install --no-cache-dir -r /opt/python-runtime/requirements.txt ;; \
+      *) echo 'PYTHON_PACKAGE_INSTALLER must be pip or uv' >&2; exit 1 ;; \
+    esac && python3.12 -m pip check
+COPY sandbox/python_inventory.py /opt/python-runtime/inventory.py
+RUN python3.12 /opt/python-runtime/inventory.py --build /opt/python-runtime
 WORKDIR /opt/pi
 COPY sandbox/package*.json ./
 RUN npm ci --omit=dev && ln -s /opt/pi/node_modules/.bin/pi /usr/local/bin/pi

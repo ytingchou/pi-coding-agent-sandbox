@@ -1,0 +1,16 @@
+# Test overlay only. Run with -f compose.yaml -f compose.offline-test.yaml.
+# The worker has loopback only: no DNS, package index, or model access.
+services:
+  sandbox-1:
+    networks: !reset []
+    network_mode: none
+    volumes:
+      - ./orchestrator:/app/orchestrator:ro
+      - ./tests:/app/tests:ro
+    environment:
+      OPENAI_API_KEY: ""
+      PI_API_KEY: ""
+      PI_BASE_URL: ""
+      PI_API_MODE: ""
+      PI_MODEL: gpt-4.1-mini
+      PI_MODEL_COMPAT: ""

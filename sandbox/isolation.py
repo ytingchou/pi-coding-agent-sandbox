@@ -20,6 +20,7 @@ def command(root: Path, argv: list[str]) -> list[str]:
         "--ro-bind", "/usr", "/usr",
         "--ro-bind", "/opt/pi", "/opt/pi",
         "--ro-bind", "/opt/pi-resources", "/opt/pi-resources",
+        "--ro-bind", "/opt/python-runtime", "/opt/python-runtime",
         "--symlink", "usr/bin", "/bin", "--symlink", "usr/sbin", "/sbin",
         "--symlink", "usr/lib", "/lib",
     ]
@@ -43,8 +44,11 @@ def environment() -> dict[str, str]:
         "XDG_CACHE_HOME": "/workspace/home/.cache",
         "UV_CACHE_DIR": "/workspace/home/.cache/uv",
         "UV_PYTHON_DOWNLOADS": "never",
+        "UV_OFFLINE": "true",
         "UV_PROJECT_ENVIRONMENT": "/workspace/venv",
         "PIP_REQUIRE_VIRTUALENV": "true",
+        "PIP_NO_INDEX": "1",
+        "PIP_DISABLE_PIP_VERSION_CHECK": "1",
         "npm_config_cache": "/workspace/home/.cache/npm",
         "npm_config_prefix": "/workspace/home/.local",
         "GIT_TERMINAL_PROMPT": "0",
@@ -67,14 +71,15 @@ BOOTSTRAP = """
 set -eu
 mkdir -p /workspace/home /workspace/state
 if [ ! -d /workspace/venv ]; then
-    /usr/local/bin/python3.12 -m venv /workspace/venv
+    /usr/local/bin/python3.12 -m venv --system-site-packages /workspace/venv
 fi
 if ! /workspace/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12)'; then
     echo 'Session venv requires Python 3.12. Export your files and recreate the session; automatic venv migration is disabled.' >&2
     exit 1
 fi
 /usr/local/bin/python3.12 /opt/pi-resources/bootstrap.py
+/workspace/venv/bin/python /opt/python-runtime/inventory.py > /workspace/state/python-packages.json
 exec pi --mode rpc --provider openai --model "$1" \
     --session /workspace/state/session.jsonl \
-    --append-system-prompt 'For coding tasks, write a Python file in /workspace and execute it with python. Python is 3.12. Install dependencies with python -m pip install or uv pip install in the session venv; do not use --system or --user. Report actual stdout and errors; never invent execution results.'
+    --append-system-prompt "$(cat /opt/python-runtime/SYSTEM.md)"
 """

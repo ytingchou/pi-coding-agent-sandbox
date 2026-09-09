@@ -25,7 +25,7 @@ COLLECT_CODE = '''import json,sys,os
 from pathlib import Path
 x=json.load(sys.stdin);root=Path('/sessions')/x['id']/'data'
 files={};missing=[]
-for name in ['state/session.jsonl','extension-audit.jsonl']+x['artifacts']:
+for name in ['state/session.jsonl','state/python-packages.json','extension-audit.jsonl']+x['artifacts']:
  p=root/name
  if not p.resolve().is_relative_to(root.resolve()):raise ValueError('Artifact escapes session')
  if p.is_file():files[name]=p.read_text()

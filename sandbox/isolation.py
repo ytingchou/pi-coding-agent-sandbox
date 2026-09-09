@@ -25,7 +25,7 @@ def command(root: Path, argv: list[str]) -> list[str]:
     ]
     if Path("/lib64").exists():
         args += ["--symlink", "usr/lib64", "/lib64"]
-    for path in ("/etc/ssl", "/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf"):
+    for path in ("/etc/ssl", "/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf", "/etc/ld.so.cache"):
         args += ["--ro-bind", path, path]
     args += [
         "--bind", str(root / "data"), "/workspace",
@@ -41,6 +41,10 @@ def environment() -> dict[str, str]:
         "PATH": "/workspace/venv/bin:/usr/local/bin:/usr/bin:/bin",
         "HOME": "/workspace/home", "TMPDIR": "/tmp",
         "XDG_CACHE_HOME": "/workspace/home/.cache",
+        "UV_CACHE_DIR": "/workspace/home/.cache/uv",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_PROJECT_ENVIRONMENT": "/workspace/venv",
+        "PIP_REQUIRE_VIRTUALENV": "true",
         "npm_config_cache": "/workspace/home/.cache/npm",
         "npm_config_prefix": "/workspace/home/.local",
         "GIT_TERMINAL_PROMPT": "0",
@@ -62,11 +66,15 @@ def limits() -> None:
 BOOTSTRAP = """
 set -eu
 mkdir -p /workspace/home /workspace/state
-if [ ! -x /workspace/venv/bin/python ]; then
-    /usr/bin/python3 -m venv /workspace/venv
+if [ ! -d /workspace/venv ]; then
+    /usr/local/bin/python3.12 -m venv /workspace/venv
 fi
-/usr/bin/python3 /opt/pi-resources/bootstrap.py
+if ! /workspace/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 12)'; then
+    echo 'Session venv requires Python 3.12. Export your files and recreate the session; automatic venv migration is disabled.' >&2
+    exit 1
+fi
+/usr/local/bin/python3.12 /opt/pi-resources/bootstrap.py
 exec pi --mode rpc --provider openai --model "$1" \
     --session /workspace/state/session.jsonl \
-    --append-system-prompt 'For coding tasks, write a Python file in /workspace and execute it with python. Use the session venv. Report actual stdout and errors; never invent execution results.'
+    --append-system-prompt 'For coding tasks, write a Python file in /workspace and execute it with python. Python is 3.12. Install dependencies with python -m pip install or uv pip install in the session venv; do not use --system or --user. Report actual stdout and errors; never invent execution results.'
 """
